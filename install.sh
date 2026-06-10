@@ -17,7 +17,8 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 echo -e "${CYAN}╔══════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║     🎵 Music Creation Engine — Installer v1.0       ║${NC}"
+echo -e "${CYAN}║  🎵 Music Creation Engine — Installer v1.0      ║${NC}"
+echo -e "${CYAN}║  音乐创作引擎 — 一键安装脚本                        ║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════════════════╝${NC}"
 echo ""
 

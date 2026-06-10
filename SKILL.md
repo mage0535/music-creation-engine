@@ -35,18 +35,18 @@ load_condition: "识别到用户有音乐相关的创作意图时主动询问是
 
 | Agent | 职责 |
 |-------|------|
-| 🎤 **词作家** | 根据用户灵感创作歌词初稿，注意押韵/节奏/段落结构 |
-| 🎸 **曲作者** | 从旋律角度评估歌词的可唱性和节奏感 |
-| 🎛️ **音乐制作人** | 从整体结构角度（Intro/Verse/Chorus/Bridge/Outro）评估歌词 |
+| 🎤 **词作家 / Lyricist** | 创作歌词，注意押韵/节奏/段落结构 / Creates lyrics with rhyme, rhythm, structure |
+| 🎸 **曲作者 / Composer** | 从旋律角度评估歌词的可唱性和音乐流畅度 / Evaluates singability & melodic flow |
+| 🎛️ **音乐制作人 / Producer** | 整体结构评估（Intro/Verse/Chorus/Bridge/Outro）/ Assesses arrangement & structure |
 
-**工作流**：
-1. **识别意图** — 用户聊到音乐相关话题时，主动问「需要帮你写成歌吗？」
-2. **需求采集** — 如果用户确认，了解灵感/风格/乐器/场合等
-3. 并行启动 3 个 Agent 各自从自己角度创作歌词/评估
-4. 汇总后展示给用户
-5. 用户提出修改意见
-6. 重新 spawn Agent 修改
-7. 用户确认最终版
+**工作流 / Workflow**：
+1. **识别意图 / Detect intent** — 用户聊到音乐相关话题时，主动问「需要帮你写成歌吗？」/ Ask "Want me to write a song?"
+2. **需求采集 / Gather requirements** — 如果用户确认，了解灵感/风格/乐器/场合等 / Confirm idea, style, instruments, occasion
+3. 并行启动 3 个 Agent 各自创作歌词/评估 / Spawn 3 parallel agents for lyrics
+4. 汇总展示给用户 / Show merged results to user
+5. 用户提出修改意见 / User gives feedback
+6. 重新 spawn Agent 修改 / Re-spawn agents with revisions
+7. 用户确认最终版 / User confirms final version
 
 ### 阶段 3: 作曲规划
 
@@ -230,3 +230,11 @@ delegate_task(tasks=[
 | 音色一般 | FluidSynth GM 音色库，2000 年代合成质量 | 安装 REAPER + VST 音源 |
 | 无歌声音轨 | 仅乐器 Demo，没有人声 | kokoro TTS 哼唱 / Suno API |
 | 简谱有限 | 当前主力五线谱 | 增加简谱输出模块（music21 数字→PIL 渲染）|
+
+---
+
+## 链接 / Links
+
+- **GitHub**: https://github.com/mage0535/music-creation-engine
+- **Issues**: https://github.com/mage0535/music-creation-engine/issues
+- **Install**: `git clone https://github.com/mage0535/music-creation-engine.git && cd music-creation-engine && chmod +x install.sh && ./install.sh`

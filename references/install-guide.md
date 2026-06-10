@@ -117,3 +117,11 @@ ls -lh /tmp/music_test/test_demo.mp3
 - **使用 Claude Code**: 复制 SKILL.md 到 `~/.claude/skills/`
 - **使用 Cursor**: 复制 README.md 到项目文档
 - **使用任何 LLM**: 粘贴 README.md 到系统提示词，LLM 即可理解完整管线
+
+---
+
+## 链接 / Links
+
+- **GitHub**: https://github.com/mage0535/music-creation-engine
+- **Issues**: https://github.com/mage0535/music-creation-engine/issues
+- **Topics**: `music-creation` `ai-composer` `sheet-music` `lilypond` `music21` `midi` `audio-demo` `fluidsynth` `hermes-agent` `claude-code` `ai-agent` `music-ai` `multilingual` `mcp-server` `zero-gpu`
