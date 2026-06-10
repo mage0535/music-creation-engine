@@ -1,0 +1,16 @@
+*.pyc
+__pycache__/
+*.egg-info/
+dist/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.wav
+*.mp3
+*.mid
+*.pdf
+*.xml
+/music_test/
