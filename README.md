@@ -37,16 +37,6 @@
 4. 更强的原生 MIDI 编辑与可演奏性校验。
 5. 可选的外部 sidecar 集成，而不是把所有能力硬塞进核心。
 
-## 版本说明
-
-本仓库当前统一为 `0.4.0`，对应的三处核心版本源是：
-
-- `pyproject.toml`
-- `src/music_creation_engine/__init__.py`
-- `src/music_creation_engine/integrations/meting.py`
-
-这三处应保持一致，避免发布、运行时协议和客户端识别出现漂移。
-
 ## 工作流
 
 推荐的真实执行顺序如下：
@@ -200,15 +190,7 @@ sudo apt-get install -y lilypond fluidsynth fluid-soundfont-gm ffmpeg
 - `copy bundle into detected agent skill directories`：把项目打包到 Hermes、Codex、OpenClaw 等常见技能路径，便于智能体直接调用。
 - `fallback directory`：当系统没有检测到任何技能目录时，使用用户主目录下的兜底副本。
 
-## GitHub 发布
-
-本项目已经按公开仓库方式整理，并补充了 Release 自动化流程：
-
-- `.github/workflows/release.yml`
-- 版本号统一为 `v0.4.0`
-- 未来只要推送 `v*` 标签，就会自动打包并发布 GitHub Release
-
-## 下一步可选方向
+## 下一步方向
 
 1. 更强的 Meting 结果规范化和 provider 适配。
 2. 更强的异步队列和任务编排。
