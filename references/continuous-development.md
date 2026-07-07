@@ -2108,3 +2108,44 @@ The project is now best described as:
 - deeper native MIDI transformation primitives
 - richer playability heuristics
 - optional advanced REAPER / midi-composer sidecar depth
+---
+
+## 2026-07-07 (Session 15 — Additional Enhancement Pass)
+
+### What was added
+
+- Native MIDI transform support:
+  - `transpose`
+  - `replace_phrase`
+  - `reverse`
+  - `invert`
+- API route:
+  - `POST /v1/midi/transform`
+- CLI command:
+  - `music-creation-engine midi transform`
+
+- Workflow lifecycle controls strengthened:
+  - list
+  - retry
+  - cancel
+  - delete
+  - cleanup
+
+- Artifact service enhanced with:
+  - workflow directory listing
+  - explicit delete
+  - cancellation marker
+  - retention-based cleanup
+
+- Reference search fallback improved:
+  - no longer placeholder-only when Meting is unavailable
+  - falls back to public HTTP music search and returns structured metadata
+
+### Local verification
+
+- `pytest`: **60 passed**
+- `tests/e2e_http_workflow.py`: **30 passed / 0 failed**
+
+### Impact
+
+This pass did not change the core architecture. It deepened the practical editing and lifecycle surface so the engine behaves more like a real creative workbench and less like a one-shot generator.
