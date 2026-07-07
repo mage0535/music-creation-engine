@@ -1,0 +1,38 @@
+{
+  "workflow_id": "df1360362cad",
+  "score": {
+    "status": "dry-run",
+    "reason": "music21 is not installed. Install the music extra or run install.sh first.",
+    "error_code": "MISSING_DEPENDENCY",
+    "midi": "build\\output\\song.mid",
+    "pdf": "build\\output\\song.pdf",
+    "musicxml": "build\\output\\song.musicxml"
+  },
+  "render": null,
+  "request": {
+    "lyrics": "hello world",
+    "output_base": "build/output/song",
+    "key": "C",
+    "bpm": 120,
+    "instruments": "piano,vocals",
+    "style": "pop",
+    "render_demo": false,
+    "chord_progression": [],
+    "sections": [],
+    "melody": {},
+    "instrument_roles": {}
+  },
+  "checkpoints": [
+    {
+      "stage": "score",
+      "payload": {
+        "status": "dry-run",
+        "reason": "music21 is not installed. Install the music extra or run install.sh first.",
+        "error_code": "MISSING_DEPENDENCY",
+        "midi": "build\\output\\song.mid",
+        "pdf": "build\\output\\song.pdf",
+        "musicxml": "build\\output\\song.musicxml"
+      }
+    }
+  ]
+}
