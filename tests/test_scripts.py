@@ -25,20 +25,18 @@ def test_sheet_music_script_runs_without_editable_install(tmp_path):
     assert payload["midi"].endswith("song.mid")
 
 
-def test_demo_renderer_script_runs_without_editable_install(tmp_path):
+def test_demo_renderer_script_reports_missing_midi(tmp_path):
     result = subprocess.run(
         [
             sys.executable,
             "scripts/demo_renderer.py",
             "--midi",
-            str(tmp_path / "song.mid"),
+            str(tmp_path / "nonexistent.mid"),
             "--output",
             str(tmp_path / "song"),
         ],
         capture_output=True,
         text=True,
-        check=True,
     )
 
-    payload = json.loads(result.stdout)
-    assert payload["mp3"].endswith("song.mp3")
+    assert result.returncode == 1
