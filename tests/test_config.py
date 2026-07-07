@@ -1,3 +1,4 @@
+import pytest
 from pathlib import Path
 
 from music_creation_engine.config import load_settings
@@ -56,3 +57,49 @@ integrations:
 
     assert settings.project.output_dir == "build/output"
     assert settings.integrations.advanced_enabled is True
+
+
+def test_load_settings_missing_defaults_file_returns_defaults():
+    settings = load_settings(defaults_path=Path("/nonexistent/defaults.yaml"))
+
+    assert settings.project.output_dir == "build/output"
+    assert settings.integrations.meting_enabled is True
+
+
+def test_load_settings_corrupt_yaml_raises(tmp_path):
+    bad_yaml = tmp_path / "bad.yaml"
+    bad_yaml.write_text(": invalid yaml ::", encoding="utf-8")
+
+    with pytest.raises(Exception):
+        load_settings(defaults_path=bad_yaml)
+
+
+def test_load_settings_scalar_config_raises(tmp_path):
+    scalar_yaml = tmp_path / "scalar.yaml"
+    scalar_yaml.write_text("just a string", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="must contain a mapping"):
+        load_settings(defaults_path=scalar_yaml)
+
+
+def test_load_settings_supports_sidecar_and_workflow_paths(tmp_path):
+    defaults = tmp_path / "defaults.yaml"
+    defaults.write_text(
+        """
+project:
+  output_dir: build/output
+  workflow_dir: build/workflows
+integrations:
+  meting_enabled: true
+  midi_composer_enabled: true
+  midi_composer_command: midi-composer-mcp
+  reaper_enabled: false
+""".strip(),
+        encoding="utf-8",
+    )
+
+    settings = load_settings(defaults_path=defaults)
+
+    assert settings.project.workflow_dir == "build/workflows"
+    assert settings.integrations.midi_composer_enabled is True
+    assert settings.integrations.midi_composer_command == "midi-composer-mcp"
