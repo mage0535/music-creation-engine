@@ -10,12 +10,13 @@ copy_bundle() {
   cp "$ROOT_DIR/SKILL.md" "$target/"
   cp "$ROOT_DIR/pyproject.toml" "$target/"
 
-  mkdir -p "$target/scripts" "$target/references" "$target/config" "$target/adapters" "$target/examples"
+  mkdir -p "$target/scripts" "$target/references" "$target/config" "$target/adapters" "$target/examples" "$target/src"
   cp "$ROOT_DIR/scripts/"*.py "$target/scripts/"
   cp "$ROOT_DIR/references/"*.md "$target/references/"
   cp "$ROOT_DIR/config/"*.yaml "$target/config/"
   cp -r "$ROOT_DIR/adapters/." "$target/adapters/"
   cp -r "$ROOT_DIR/examples/." "$target/examples/"
+  cp -r "$ROOT_DIR/src/." "$target/src/"
 }
 
 install_python_deps() {
