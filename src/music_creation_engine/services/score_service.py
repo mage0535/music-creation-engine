@@ -22,6 +22,8 @@ class DefaultScoreBackend:
             return generate_score_artifacts(request)
         except EngineError as exc:
             logger.error("score: engine error code=%s message=%s", exc.code.value, exc.message)
+            if exc.code == ErrorCode.MISSING_DEPENDENCY:
+                raise
             base = Path(request.output_base)
             return {
                 "status": "dry-run",
@@ -33,15 +35,11 @@ class DefaultScoreBackend:
             }
         except Exception as exc:
             logger.exception("score: unexpected error")
-            base = Path(request.output_base)
-            return {
-                "status": "dry-run",
-                "reason": str(exc),
-                "error_code": ErrorCode.RUNTIME_FAILURE.value,
-                "midi": str(base.with_suffix(".mid")),
-                "pdf": str(base.with_suffix(".pdf")),
-                "musicxml": str(base.with_suffix(".musicxml")),
-            }
+            raise EngineError(
+                code=ErrorCode.RUNTIME_FAILURE,
+                message="Score generation failed unexpectedly",
+                detail=str(exc),
+            ) from exc
 
 
 @dataclass
