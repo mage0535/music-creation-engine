@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from music_creation_engine.capabilities import detect_capabilities
 from music_creation_engine.config import load_settings
+from music_creation_engine.integrations.meting import MetingIntegration
 from music_creation_engine.models import (
     EngineError,
     ErrorCode,
@@ -135,7 +136,9 @@ def create_app() -> FastAPI:
 
     @app.post("/v1/references/search")
     def reference_search(body: ReferenceSearchBody) -> dict[str, object]:
-        service = ReferenceService()
+        service = ReferenceService(
+            meting=MetingIntegration(enabled=settings.integrations.meting_enabled, command=settings.tools.meting_command)
+        )
         return service.search(
             ReferenceSearchRequest(keyword=body.keyword, platform=body.platform)
         )
