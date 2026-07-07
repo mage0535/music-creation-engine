@@ -50,5 +50,8 @@ def load_settings(
     output_dir_override = os.getenv("MCE_OUTPUT_DIR")
     if output_dir_override:
         project.output_dir = output_dir_override
+    workflow_dir_override = os.getenv("MCE_WORKFLOW_DIR")
+    if workflow_dir_override:
+        project.workflow_dir = workflow_dir_override
 
     return Settings(project=project, integrations=integrations, tools=tools)
