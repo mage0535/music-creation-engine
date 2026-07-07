@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "music-creation-engine"
-version = "0.2.0"
+version = "0.4.0"
 description = "Deployable music creation engine with CLI, HTTP API, and agent adapters"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.137",
   "PyYAML>=6.0",
+  "music21>=9.0",
 ]
 
 [project.optional-dependencies]
