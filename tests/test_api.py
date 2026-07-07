@@ -35,11 +35,16 @@ def test_score_endpoint_returns_artifacts():
 
     response = client.post(
         "/v1/score",
-        json={"lyrics": "hello world", "output_base": "build/output/song"},
+        json={
+            "lyrics": "hello world",
+            "output_base": "build/output/song",
+            "melody": {"vocals": ["A4", "B4", "C5"]},
+        },
     )
 
     assert response.status_code == 200
     assert response.json()["midi"].endswith("song.mid")
+    assert response.json()["request_echo"]["melody"]["vocals"] == [69, 71, 72]
 
 
 def test_workflow_endpoint_returns_score_and_render():
@@ -47,27 +52,27 @@ def test_workflow_endpoint_returns_score_and_render():
 
     response = client.post(
         "/v1/workflows/full",
-        json={"lyrics": "hello world", "output_base": "build/output/song", "render_demo": True},
+        json={"lyrics": "hello world", "output_base": "build/output/song", "render_demo": False},
     )
 
     assert response.status_code == 200
-    assert response.json()["score"]["pdf"].endswith("song.pdf")
-    assert response.json()["render"]["mp3"].endswith("song.mp3")
+    assert "workflow_id" in response.json()
+    assert ".mid" in response.json()["score"]["midi"]
 
 
-def test_render_endpoint_returns_artifacts():
+def test_render_endpoint_missing_midi_returns_error():
     client = TestClient(create_app())
 
     response = client.post(
         "/v1/render",
-        json={"midi_path": "build/output/song.mid", "output_base": "build/output/song"},
+        json={"midi_path": "build/output/nonexistent.mid", "output_base": "build/output/song"},
     )
 
-    assert response.status_code == 200
-    assert response.json()["mp3"].endswith("song.mp3")
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "FILE_NOT_FOUND"
 
 
-def test_render_missing_midi_returns_dry_run():
+def test_render_missing_midi_returns_error():
     client = TestClient(create_app())
 
     response = client.post(
@@ -75,9 +80,8 @@ def test_render_missing_midi_returns_dry_run():
         json={"midi_path": "/nonexistent/file.mid", "output_base": "build/output/bad"},
     )
 
-    assert response.status_code == 200
-    assert response.json()["status"] == "dry-run"
-    assert "error_code" in response.json()
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "FILE_NOT_FOUND"
 
 
 def test_api_unhandled_exception_returns_500(monkeypatch):
@@ -146,6 +150,8 @@ def test_artifact_manifest_endpoint_returns_saved_manifest():
 
     assert response.status_code == 200
     assert response.json()["workflow_id"] == workflow["workflow_id"]
+    assert ".mid" in response.json()["score"]["midi"]
+    assert isinstance(response.json().get("files", []), list)
 
 
 def test_workflow_checkpoints_endpoint_returns_list():
@@ -160,3 +166,93 @@ def test_workflow_checkpoints_endpoint_returns_list():
 
     assert response.status_code == 200
     assert isinstance(response.json(), list)
+
+
+def test_async_workflow_returns_processing_and_status():
+    client = TestClient(create_app())
+
+    workflow = client.post(
+        "/v1/workflows/full?async=true",
+        json={"lyrics": "hello world", "output_base": "build/output/song", "render_demo": False},
+    ).json()
+
+    assert workflow["status"] == "processing"
+    status = client.get(f"/v1/workflows/{workflow['workflow_id']}/status")
+    assert status.status_code == 200
+    assert status.json()["status"] in {"processing", "completed", "failed"}
+
+
+def test_artifact_file_endpoint_returns_content():
+    client = TestClient(create_app())
+
+    workflow = client.post(
+        "/v1/workflows/full",
+        json={"lyrics": "hello world", "output_base": "build/output/song", "render_demo": False},
+    ).json()
+
+    response = client.get(f"/v1/artifacts/{workflow['workflow_id']}/files/composition.mid")
+
+    assert response.status_code == 200
+    assert len(response.content) > 0
+
+
+def test_workflow_revise_returns_revision_marker():
+    client = TestClient(create_app())
+
+    workflow = client.post(
+        "/v1/workflows/full",
+        json={"lyrics": "hello world", "output_base": "build/output/song", "render_demo": False},
+    ).json()
+
+    response = client.post(f"/v1/workflows/{workflow['workflow_id']}/revise", json={"bpm": 90})
+
+    assert response.status_code == 200
+    assert response.json()["revision_of"] == workflow["workflow_id"]
+
+
+def test_workflow_delete_removes_manifest():
+    client = TestClient(create_app())
+
+    workflow = client.post(
+        "/v1/workflows/full",
+        json={"lyrics": "hello world", "output_base": "build/output/song", "render_demo": False},
+    ).json()
+
+    deleted = client.delete(f"/v1/workflows/{workflow['workflow_id']}")
+    assert deleted.status_code == 200
+    missing = client.get(f"/v1/artifacts/{workflow['workflow_id']}")
+    assert missing.status_code == 400
+
+
+def test_workflow_list_and_retry():
+    client = TestClient(create_app())
+
+    workflow = client.post(
+        "/v1/workflows/full",
+        json={"lyrics": "hello world", "output_base": "build/output/song", "render_demo": False},
+    ).json()
+
+    listed = client.get("/v1/workflows")
+    assert listed.status_code == 200
+    assert workflow["workflow_id"] in [item["workflow_id"] for item in listed.json()["workflows"]]
+
+    retried = client.post(f"/v1/workflows/{workflow['workflow_id']}/retry")
+    assert retried.status_code == 200
+    assert retried.json()["retry_of"] == workflow["workflow_id"]
+
+
+def test_workflow_cancel_and_cleanup():
+    client = TestClient(create_app())
+
+    workflow = client.post(
+        "/v1/workflows/full?async=true",
+        json={"lyrics": "hello world", "output_base": "build/output/song", "render_demo": False},
+    ).json()
+
+    cancelled = client.post(f"/v1/workflows/{workflow['workflow_id']}/cancel")
+    assert cancelled.status_code == 200
+    assert cancelled.json()["cancel_requested"] == workflow["workflow_id"]
+
+    cleaned = client.post("/v1/workflows/cleanup", params={"retention_days": 0})
+    assert cleaned.status_code == 200
+    assert "deleted" in cleaned.json()
