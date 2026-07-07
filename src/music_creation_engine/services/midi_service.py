@@ -16,7 +16,7 @@ def _parse_midi_to_notes(midi_path: str) -> list[int]:
         logger.warning("music21 not available for MIDI parsing")
         return []
     score = converter.parse(midi_path)
-    notes = [n for n in score.flatten.notes if n.isNote]
+    notes = [n for n in score.flatten().notes if n.isNote]
     if notes:
         return sorted(int(n.pitch.ps) for n in notes)
     return sorted(int(p.ps) for p in score.pitches)
