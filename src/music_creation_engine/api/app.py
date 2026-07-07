@@ -188,7 +188,7 @@ def _run_workflow_async(workflow_id: str, service: WorkflowService, artifact_ser
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Music Creation Engine")
-    settings = load_settings()
+    settings = load_settings(resolve_paths=True)
     score_service = ScoreService()
     render_service = RenderService()
     artifact_service = ArtifactService(settings.project.workflow_dir)

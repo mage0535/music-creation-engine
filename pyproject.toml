@@ -25,6 +25,12 @@ dev = [
 [project.scripts]
 music-creation-engine = "music_creation_engine.cli:run"
 
+[project.urls]
+Homepage = "https://github.com/mage0535/music-creation-engine"
+Source = "https://github.com/mage0535/music-creation-engine"
+Releases = "https://github.com/mage0535/music-creation-engine/releases"
+Documentation = "https://github.com/mage0535/music-creation-engine/blob/main/README.md"
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 

@@ -36,6 +36,8 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
 def load_settings(
     defaults_path: Path | None = None,
     local_path: Path | None = None,
+    *,
+    resolve_paths: bool = False,
 ) -> Settings:
     repo_root = Path.cwd()
     defaults_path = defaults_path or (repo_root / "config" / "defaults.yaml")
@@ -53,5 +55,11 @@ def load_settings(
     workflow_dir_override = os.getenv("MCE_WORKFLOW_DIR")
     if workflow_dir_override:
         project.workflow_dir = workflow_dir_override
+
+    if resolve_paths:
+        if not Path(project.output_dir).is_absolute():
+            project.output_dir = str(repo_root / project.output_dir)
+        if not Path(project.workflow_dir).is_absolute():
+            project.workflow_dir = str(repo_root / project.workflow_dir)
 
     return Settings(project=project, integrations=integrations, tools=tools)

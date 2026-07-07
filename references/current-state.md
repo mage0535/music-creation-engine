@@ -16,17 +16,20 @@ It is no longer just a skill bundle.
 - MIDI diff / inspect / query
 - basic playability checks
 - Docker / compose assets
+- Chinese-first README with English switch page
+- interactive installer confirmations
+- GitHub Release workflow
 
 ## Weak Areas
 
-- Meting reference integration is not yet a stable normalized data source
+- Meting reference normalization can still be deepened per provider
 - async workflow is lightweight, not a full job system
 - workflow retention / cleanup / cancel / retry are functional but still minimal
 - sidecar integrations are present but shallow
 
 ## Current Priority
 
-1. deployment consistency
+1. deployment consistency and public release hygiene
 2. workflow lifecycle hardening
-3. Meting MCP-client integration
+3. Meting normalization and MCP-client integration
 4. only then deeper external musical capability integration

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import subprocess
 import time
@@ -9,7 +10,10 @@ from urllib.parse import urlencode
 from urllib.request import urlopen
 from dataclasses import dataclass
 
+from music_creation_engine import __version__ as PACKAGE_VERSION
 from music_creation_engine.integrations.base import IntegrationResult
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -98,14 +102,21 @@ class MetingIntegration:
             return None
 
     def _search_via_mcp(self, keyword: str, platform: str) -> dict[str, object] | None:
+        missing_proc_timeout = 15
         proc = subprocess.Popen(
             self._build_server_command(),
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
+            start_new_session=True,
         )
         try:
+            deadline = time.monotonic() + missing_proc_timeout
+
+            def remaining() -> float:
+                return max(0.1, deadline - time.monotonic())
+
             self._write_mcp_message(
                 proc,
                 {
@@ -115,14 +126,16 @@ class MetingIntegration:
                     "params": {
                         "protocolVersion": "2025-03-26",
                         "capabilities": {},
-                        "clientInfo": {"name": "music-creation-engine", "version": "0.4.0"},
+                        "clientInfo": {"name": "music-creation-engine", "version": PACKAGE_VERSION},
                     },
                 },
             )
-            self._read_mcp_message(proc)
+            init_response = self._read_mcp_message(proc, min(5.0, remaining()))
+            if init_response is None:
+                return None
             self._write_mcp_message(proc, {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}})
             self._write_mcp_message(proc, {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
-            tools_message = self._read_mcp_message(proc) or {}
+            tools_message = self._read_mcp_message(proc, min(5.0, remaining())) or {}
             tools = tools_message.get("result", {}).get("tools", [])
             tool_name = None
             for tool in tools:
@@ -141,7 +154,7 @@ class MetingIntegration:
                     "params": {"name": tool_name, "arguments": {"platform": platform, "keyword": keyword}},
                 },
             )
-            result_message = self._read_mcp_message(proc) or {}
+            result_message = self._read_mcp_message(proc, min(5.0, remaining())) or {}
             content = result_message.get("result", {}).get("content", [])
             for item in content:
                 if item.get("type") == "text":
@@ -152,8 +165,22 @@ class MetingIntegration:
                     except json.JSONDecodeError:
                         return {"raw": text}
             return result_message.get("result")
+        except (BrokenPipeError, OSError) as exc:
+            logger.warning("MCP search failed (pipe): %s", exc)
+            return None
+        except TimeoutError:
+            logger.warning("MCP search timed out after %ds", missing_proc_timeout)
+            return None
         finally:
-            proc.kill()
+            try:
+                import signal
+                pgid = os.getpgid(proc.pid)
+                os.killpg(pgid, signal.SIGTERM)
+            except Exception:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
 
     def _search_via_http_fallback(self, keyword: str) -> dict[str, object] | None:
         query = urlencode({"term": keyword, "entity": "song", "limit": 5})
@@ -247,13 +274,13 @@ class MetingIntegration:
                         return IntegrationResult(payload=payload, source="meting")
                     except json.JSONDecodeError:
                         pass
-            except (FileNotFoundError, subprocess.SubprocessError):
+            except (FileNotFoundError, subprocess.SubprocessError, BrokenPipeError, OSError):
                 pass
             try:
                 payload = self._search_via_mcp(keyword, platform)
                 if payload:
                     return IntegrationResult(payload=payload, source="meting")
-            except (FileNotFoundError, subprocess.SubprocessError):
+            except (FileNotFoundError, subprocess.SubprocessError, BrokenPipeError, OSError):
                 pass
             try:
                 payload = self._search_via_http_fallback(keyword)

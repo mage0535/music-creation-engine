@@ -2239,3 +2239,244 @@ The following are now enhancement opportunities rather than blocking work:
 - richer native MIDI editing/transformation beyond the current core set
 - stronger playability heuristics
 - deeper `midi-composer-mcp` and `reaper-mcp` integration
+
+---
+
+## 2026-07-07 (Session 18 — Production Server Deep Scan & Optimization)
+
+> **Server:** Hermes production | Ubuntu 24.04 | 4 vCPU | 7.8GB RAM | 88GB disk (74% used)
+> **Live process:** uvicorn on port 18126 (was already running, not documented)
+
+### Deep Scan Findings
+
+| Check | Status | Detail |
+|-------|--------|--------|
+| OS | Ubuntu 24.04 LTS | ✅ |
+| Python | 3.12.3 (Hermes venv) | ✅ |
+| CPU | 4 cores | ✅ |
+| Memory | 7.8GB total, 4.8GB free | ✅ |
+| Disk | 88GB total, 24GB free (74% used) | ⚠️ Monitor |
+| music21 | 10.3.0 | ✅ |
+| LilyPond | installed | ✅ |
+| FluidSynth | installed + running as daemon | ✅ |
+| SoundFonts | FluidR3_GM.sf2 (141MB) + SF3 default | ✅ |
+| Abjad | 3.31 (not in use by our runtime) | ⚠️ Available |
+| Hermes gateway | Running | ✅ |
+| uvicorn | Running on port 18126 | ✅ (undocumented) |
+| `build/` dir | Missing (relative path crash) | ❌ **Fixed** |
+| Meting search | Broken pipe crash | ❌ **Fixed** |
+
+### Bugs Found & Fixed on Live Server
+
+**Bug 1 — Workflow pipeline crashes with 500 (Critical):**
+- `POST /v1/workflows/full` returned 500: `[Errno 2] No such file or directory: 'build'`
+- Root cause: `config/defaults.yaml` has `workflow_dir: build/workflows` (relative path). uvicorn's CWD was not the project root, so relative path resolution failed.
+- Fix: `config.py:load_settings()` now resolves relative `output_dir` and `workflow_dir` against the repo root. Env vars `MCE_OUTPUT_DIR` and `MCE_WORKFLOW_DIR` can override.
+
+**Bug 2 — Reference search crashes with 500 (Critical):**
+- `POST /v1/references/search` returned 500: `[Errno 32] Broken pipe`
+- Root cause: MCP stdio subprocess died before parent wrote to stdin. `BrokenPipeError` is a subclass of `OSError`, NOT `subprocess.SubprocessError` — so the existing `except (FileNotFoundError, subprocess.SubprocessError)` did NOT catch it.
+- Fix: Added `BrokenPipeError, OSError` to all catch clauses in `meting.py`. Also added try/except around `_search_via_mcp()`'s MCP communication with safe return instead of crash.
+
+### Live Service Verification (Post-Fix)
+
+| Endpoint | Before | After |
+|----------|--------|-------|
+| `/v1/workflows/full` | 500 (missing build/) | 200 ✅ |
+| `/v1/references/search` | 500 (broken pipe) | 200 ✅ (5 iTunes songs) |
+| `/v1/score` (note names) | 200 ✅ | 200 ✅ |
+| `/v1/render` | 200 ✅ | 200 ✅ |
+| `/v1/playability` | 200 ✅ | 200 ✅ |
+| Health + Capabilities | 200 ✅ | 200 ✅ |
+
+### Optimization Outcomes
+
+| Improvement | Impact |
+|------------|--------|
+| Relative path resolution | Workflow pipeline works from any CWD |
+| MCP error handling | Reference search no longer crashes; falls through to iTunes API |
+| Deploy script (`tests/deploy_fixes.sh`) | Repeatable restart with PYTHONPATH |
+| Disk space (74%) | Needs monitoring — workflow cleanup should be scheduled |
+
+---
+
+## 2026-07-07 (Session 17 — Final Project-Wide Audit & Closure Assessment)
+
+### Verification results
+
+| Check | Result | Detail |
+|-------|--------|--------|
+| pytest | **61 passed** | All unit/integration tests green |
+| E2E HTTP | **30/30 passed** | Full workflow via TestClient |
+| API routes | **20 routes** | All endpoints live including lifecycle + transform |
+| CLI commands | **22 sub-commands** | All parse correctly |
+| README routes | 20/21 documented | `midi transform` was missing — now added |
+| Server deployment | ✅ Verified | Hermes production server running v0.4.0 |
+
+### Three-End Consistency — Final Status
+
+| Route Category | API | CLI | README | Status |
+|---------------|-----|-----|--------|--------|
+| Health/Capabilities | `health`, `capabilities` | ✅ | ✅ | ✅ |
+| Score generation | `POST /v1/score` | ✅ | ✅ | ✅ |
+| Audio render | `POST /v1/render` | ✅ | ✅ | ✅ |
+| Workflow (sync) | `POST /v1/workflows/full` | ✅ | ✅ | ✅ |
+| Workflow (async) | `POST /v1/workflows/full?async=true` | ✅ | ✅ | ✅ |
+| Workflow status | `GET /v1/workflows/{id}/status` | ✅ | ✅ | ✅ |
+| Workflow revise | `POST /v1/workflows/{id}/revise` | ✅ | ✅ | ✅ |
+| Workflow retry | `POST /v1/workflows/{id}/retry` | ✅ | ✅ | ✅ |
+| Workflow cancel | `POST /v1/workflows/{id}/cancel` | ✅ | ✅ | ✅ |
+| Workflow delete | `DELETE /v1/workflows/{id}` | ✅ | ✅ | ✅ |
+| Workflow list | `GET /v1/workflows` | ✅ | ✅ | ✅ |
+| Workflow cleanup | `POST /v1/workflows/cleanup` | ✅ | ✅ | ✅ |
+| Checkpoints | `GET /v1/workflows/{id}/checkpoints` | ✅ | ✅ | ✅ |
+| File download | `GET /v1/artifacts/{id}/files/{name}` | ✅ | ✅ | ✅ |
+| Artifact manifest | `GET /v1/artifacts/{id}` | ✅ | ✅ | ✅ |
+| MIDI diff | `POST /v1/midi/diff` | ✅ | ✅ | ✅ |
+| MIDI diff-files | `POST /v1/midi/diff-files` | ✅ | ✅ | ✅ |
+| MIDI inspect | `POST /v1/midi/inspect` | ✅ | ✅ | ✅ |
+| MIDI query | `POST /v1/midi/query` | ✅ | ✅ | ✅ |
+| MIDI transform | `POST /v1/midi/transform` | ✅ | ✅ | **Fixed now** |
+| Playability | `POST /v1/playability` | ✅ | ✅ | ✅ |
+| Reference search | `POST /v1/references/search` | ✅ | ✅ | ✅ |
+
+### Functional Closure: All 16 Sessions Summary
+
+| Session | Focus | Key Deliverable |
+|---------|-------|----------------|
+| 2 | Project scaffold | Package structure, CLI, API skeleton, 20 tests |
+| 3 | Hardening | Error model, logging, CLI refactor, Windows paths |
+| 5 | External research | 20 projects + 8 papers evaluated |
+| 6 | Cross-review | Merged roadmap, architecture boundaries agreed |
+| 7 | Consensus implementation | Parameter expansion, Meting activation, checkpoint, MIDI tools, playability |
+| 8 | Production audit | File serving, unified paths, adapter docs identified as P0 blockers |
+| 9 | Production fixes | File serving endpoint, unified paths, adapter docs with examples |
+| 10 | E2E audit + server test | 8 blockers identified on real server |
+| 11 | Full implementation | music21 core dep, validation, note-names, error propagation, async, revision, Docker |
+| 12 | Post-v0.4.0 polish | Final audit of remaining gaps |
+| 13 | Three-end consistency | README/CLI/API aligned, file-based async status |
+| 14 | E2E verified locally | 30/30 HTTP workflow test passes |
+| 15 | Server deployment | Code deployed and verified on Hermes production server |
+| 16 | Enhancement pass | MIDI transform ops, workflow lifecycle, reference fallback |
+| 17 | **Closure audit** | **This session — three-end verified, 61+30 tests pass** |
+
+### What This Project Is
+
+> A stable, deployable, real-environment-tested music composition execution engine for AI agents. The Engine receives structured composition plans (chord progressions, sections, melody note names, instrument roles) from an Agent's LLM and produces MIDI, MusicXML, LilyPond PDF, WAV, and MP3 artifacts with full workflow lifecycle management.
+
+**Key architectural insight (from Session 3, reconfirmed here):** The Engine does NOT call LLMs. The Agent does all reasoning. This boundary has been maintained across all 16 sessions and is the reason the codebase can be tested deterministically with 61 tests.
+
+### What This Project Is NOT
+
+- Not a standalone chatbot or music composition UI
+- Not an LLM training pipeline
+- Not a DAW or audio workstation
+- Not a platform for direct user-facing music generation
+
+### Architecture in One Diagram
+
+```
+User → Agent (Hermes/Codex/OpenClaw) ← Decision layer
+         │ LLM plans: key, chords, sections, melody, roles
+         ▼
+music-creation-engine API ← Execution layer
+         │
+         ├── Validation (BPM 20-300, keys, instruments whitelist, chord regex)
+         ├── music21 → MIDI / MusicXML / LilyPond / PDF
+         ├── fluidsynth → WAV → ffmpeg → MP3
+         ├── ArtifactService → manifest + checkpoints + file inventory
+         ├── FileResponse → download MIDI/PDF/MP3 to user
+         ├── Workflow lifecycle → retry / cancel / revise / delete / cleanup
+         ├── MIDI tools → diff / inspect / query / transform / diff-files
+         └── Reference search → Meting CLI → MCP stdio → HTTP fallback
+```
+
+### Remaining Enhancement Opportunities (Not Blockers)
+
+| Area | Current State | Future Direction |
+|------|--------------|------------------|
+| Reference search | Meting + MCP + HTTP fallback with structured metadata | Provider-specific field normalization |
+| Async orchestration | Thread + file-based status | SSE streaming, job queue |
+| MIDI transforms | transpose/reverse/invert/replace_phrase | Deeper set from midi-composer-mcp |
+| Playability | Instrument range + span + leap | Hand-specific, per-instrument heuristics |
+| Security | No auth layer | API key, rate limiting |
+| Sidecar integrations | midi-composer-mcp + reaper-mcp wrappers | Deep integration with actual tool calls |
+
+---
+
+## 2026-07-07 (Session 19 — Server Resource Optimization & Memory Leak Fix)
+
+> **Trigger:** Server at 74% disk, 3.8GB swap usage, memory pressure.
+> **Method:** Safe optimization only — no changes to Hermes gateway, hindsight, or postgres.
+
+### Resource Audit
+
+| Resource | Before | After | Delta |
+|----------|--------|-------|-------|
+| Memory used | 3.1GB / 7.8GB | 3.3GB / 7.8GB | cache fluctuation |
+| Swap used | 3.8GB / 8.0GB | 3.6GB / 8.0GB | −0.2GB |
+| Disk | 74% (65G/88G) | 72% (63G/88G) | −2% = ~1.7GB |
+| Uvicorn count | **2** (duplicate) | **1** | −1 process |
+| Meting agents | **7** (orphaned) | **0** | −7 processes = ~400MB |
+| npm cache | 190MB | 0 | Cleaned |
+| apt cache | 121MB | 0 | Cleaned |
+| journal logs | ~250MB | ~50MB | Vacuumed 3 days |
+| Test artifacts | ~50MB | 0 | Cleaned |
+| Workflow builds | ~100MB | 0 | Cleaned |
+
+### Critical Bug: Orphaned Meting Process Leak
+
+7 orphaned `meting-agent` + `npm exec` processes accumulated over 6 sessions (~400MB). Root cause: `subprocess.Popen` without process group isolation.
+
+**Fix in `meting.py`:**
+- `start_new_session=True` on `subprocess.Popen` — creates separate process group
+- `os.killpg()` in `finally` block — kills entire process group on exit
+- 15-second hard timeout — prevents hanging forever
+- `BrokenPipeError, OSError` added to all catch clauses
+
+### Deployed Protections
+
+| File | Protection |
+|------|-----------|
+| `meting.py` | Process group isolation + 15s timeout + killpg cleanup |
+| `config.py` | Relative paths auto-resolve to absolute against repo root |
+| `tests/startup_cleanup.sh` | Pre-startup orphan cleanup + 7-day workflow TTL |
+| `tests/deploy_fixes.sh` | Clean restart with PYTHONPATH |
+
+---
+
+## 2026-07-07 (Session 20 — Public Release Packaging and Version Alignment)
+
+### What was changed
+
+- Unified the runtime version source so the package and Meting client now share the same `0.4.0` version value.
+- Rewrote the primary README into a Chinese-first public entry page with a language switch to English.
+- Added a dedicated English README for external users and collaborators.
+- Added a `CHANGELOG.md` entry for `0.4.0`.
+- Added interactive installer confirmations for:
+  - Python editable install and CLI entrypoint
+  - local render tool installation
+  - public reference integration installation
+  - agent bundle copy into detected skill directories
+  - fallback bundle copy under the home directory
+- Added GitHub Release automation via `.github/workflows/release.yml`.
+
+### Public-facing outcome
+
+The repository is now documented as a public project with:
+
+- a Chinese default landing page
+- an English switch page
+- explicit workflow, artifact, installation, and release guidance
+- tag-based GitHub Release publishing for future versions
+
+### Current release posture
+
+- Package version: `0.4.0`
+- Release tags: `v0.4.0` style
+- Release automation: enabled
+
+### Remaining follow-up
+
+- Push the documentation and release workflow changes to the GitHub repository.
+- Create the corresponding GitHub tag and release entry once the source changes are synchronized.

@@ -49,7 +49,7 @@ def cmd_health() -> int:
 
 
 def cmd_capabilities() -> int:
-    settings = load_settings()
+    settings = load_settings(resolve_paths=True)
     _print_json(detect_capabilities(settings).to_dict())
     return 0
 
@@ -91,7 +91,7 @@ def cmd_render(args: argparse.Namespace) -> int:
 
 
 def cmd_workflow_full(args: argparse.Namespace) -> int:
-    settings = load_settings()
+    settings = load_settings(resolve_paths=True)
     workflow_service = WorkflowService(
         score_service=ScoreService(),
         render_service=RenderService(),
@@ -117,12 +117,12 @@ def cmd_workflow_full(args: argparse.Namespace) -> int:
 
 
 def _artifact_service() -> ArtifactService:
-    settings = load_settings()
+    settings = load_settings(resolve_paths=True)
     return ArtifactService(settings.project.workflow_dir)
 
 
 def cmd_references_search(args: argparse.Namespace) -> int:
-    settings = load_settings()
+    settings = load_settings(resolve_paths=True)
     service = ReferenceService(
         meting=MetingIntegration(enabled=settings.integrations.meting_enabled, command=settings.tools.meting_command)
     )
