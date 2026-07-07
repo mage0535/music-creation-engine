@@ -28,6 +28,13 @@ The old repository could be copied as a skill bundle, but it was not a real depl
 - API tests: passed
 - Adapter target tests: passed
 - Layout tests: passed
+- Real generation verified on Hermes server copy:
+  - `song.mid`
+  - `song.musicxml`
+  - `song.ly`
+  - `song.pdf`
+  - `song_demo.wav`
+  - `song_demo.mp3`
 
 ### Follow-up candidates
 
