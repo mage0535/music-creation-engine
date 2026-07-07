@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from pathlib import Path
 
 from music_creation_engine.models import ArtifactManifest
 from music_creation_engine.models import RenderRequest, ScoreRequest, WorkflowRequest
@@ -19,10 +20,12 @@ class WorkflowService:
         if self.artifact_service is None:
             self.artifact_service = ArtifactService("build/workflows")
         workflow_id = self.artifact_service.create_workflow_id()
+        artifacts_dir = self.artifact_service.artifacts_subdir(workflow_id)
+        output_base = str(artifacts_dir / "composition")
         score_result = self.score_service.generate(
             ScoreRequest(
                 lyrics=request.lyrics,
-                output_base=request.output_base,
+                output_base=output_base,
                 key=request.key,
                 bpm=request.bpm,
                 instruments=request.instruments,
@@ -39,7 +42,7 @@ class WorkflowService:
             render_result = self.render_service.render(
                 RenderRequest(
                     midi_path=score_result["midi"],
-                    output_base=request.output_base,
+                    output_base=output_base,
                 )
             )
             self.artifact_service.save_checkpoint(workflow_id, "render", render_result)
