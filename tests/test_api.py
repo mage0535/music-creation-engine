@@ -129,6 +129,18 @@ def test_midi_diff_endpoint_returns_changes():
     assert response.json()["added"] == [64]
 
 
+def test_midi_transform_endpoint_returns_transposed_notes():
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/v1/midi/transform",
+        json={"notes": [60, 62, 64], "operation": "transpose", "semitones": 2},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["notes"] == [62, 64, 66]
+
+
 def test_playability_endpoint_returns_warnings():
     client = TestClient(create_app())
 
