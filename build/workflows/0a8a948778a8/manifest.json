@@ -1,0 +1,71 @@
+{
+  "workflow_id": "0a8a948778a8",
+  "score": {
+    "status": "ok",
+    "parts": [
+      "piano",
+      "vocals"
+    ],
+    "sections": [
+      {
+        "name": "song",
+        "bars": 1,
+        "key": "C"
+      }
+    ],
+    "request_echo": {
+      "chord_progression": [],
+      "sections": [],
+      "melody": {},
+      "instrument_roles": {}
+    },
+    "midi": "build\\workflows\\0a8a948778a8\\artifacts\\composition.mid",
+    "musicxml": "build\\workflows\\0a8a948778a8\\artifacts\\composition.musicxml",
+    "lilypond_error": "Cannot find a copy of Lilypond installed on your system. Please be sure it is installed. And that your environment.UserSettings()['lilypondPath'] is set to find it."
+  },
+  "render": null,
+  "request": {
+    "lyrics": "hello world",
+    "output_base": "build/output/song",
+    "key": "C",
+    "bpm": 120,
+    "instruments": "piano,vocals",
+    "style": "pop",
+    "render_demo": false,
+    "chord_progression": [],
+    "sections": [],
+    "melody": {},
+    "instrument_roles": {},
+    "async_mode": false
+  },
+  "checkpoints": [
+    {
+      "stage": "score",
+      "payload": {
+        "status": "ok",
+        "parts": [
+          "piano",
+          "vocals"
+        ],
+        "sections": [
+          {
+            "name": "song",
+            "bars": 1,
+            "key": "C"
+          }
+        ],
+        "request_echo": {
+          "chord_progression": [],
+          "sections": [],
+          "melody": {},
+          "instrument_roles": {}
+        },
+        "midi": "build\\workflows\\0a8a948778a8\\artifacts\\composition.mid",
+        "musicxml": "build\\workflows\\0a8a948778a8\\artifacts\\composition.musicxml",
+        "lilypond_error": "Cannot find a copy of Lilypond installed on your system. Please be sure it is installed. And that your environment.UserSettings()['lilypondPath'] is set to find it."
+      }
+    }
+  ],
+  "status": "completed",
+  "files": []
+}
