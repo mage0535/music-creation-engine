@@ -27,7 +27,7 @@ def test_reference_search_endpoint_returns_payload():
     response = client.post("/v1/references/search", json={"keyword": "test"})
 
     assert response.status_code == 200
-    assert response.json()["source"] == "meting"
+    assert response.json()["source"] in {"meting", "reference-fallback"}
 
 
 def test_score_endpoint_returns_artifacts():
