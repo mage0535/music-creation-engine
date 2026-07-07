@@ -113,7 +113,7 @@ class RevisionBody(BaseModel):
     bpm: int = 0
     instruments: str = ""
     style: str = ""
-    render_demo: bool = True
+    render_demo: bool | None = None
 
 
 class WorkflowListBody(BaseModel):
@@ -166,7 +166,7 @@ def _run_workflow_async(workflow_id: str, service: WorkflowService, artifact_ser
         if artifact_service.is_cancel_requested(workflow_id):
             _async_set_status(artifact_service, workflow_id, "cancelled")
             return
-        result = service.run_full(request)
+        result = service.run_full(request, workflow_id=workflow_id)
         if artifact_service.is_cancel_requested(workflow_id):
             _async_set_status(artifact_service, workflow_id, "cancelled", result)
             return
@@ -324,7 +324,7 @@ def create_app() -> FastAPI:
             bpm=merged.get("bpm", 120),
             instruments=merged.get("instruments", "piano,vocals"),
             style=merged.get("style", "pop"),
-            render_demo=merged.get("render_demo", body.render_demo),
+            render_demo=body.render_demo if body.render_demo is not None else merged.get("render_demo", True),
             chord_progression=merged.get("chord_progression", []),
             sections=merged.get("sections", []),
             melody=merged.get("melody", {}),
