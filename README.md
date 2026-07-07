@@ -9,6 +9,10 @@ It now supports:
 - Hermes, Codex, and OpenClaw adapter assets
 - default public integration with `Meting-Agent`
 - optional advanced integrations for memory and research tooling
+- optional sidecar integrations for `midi-composer-mcp` and `reaper-mcp`
+- workflow manifests and checkpoint files
+- native MIDI diff / inspect / query helpers
+- basic piano playability validation
 
 ## Project Layout
 
@@ -30,6 +34,9 @@ tests/                       Verification coverage
 music-creation-engine health
 music-creation-engine capabilities
 music-creation-engine references search --keyword "Jay Chou"
+music-creation-engine score --lyrics "hello" --output build/output/song --chord-progression "Am,F,C,G"
+music-creation-engine workflow full --lyrics "hello" --output build/output/song
+music-creation-engine midi diff --left-notes "60,62" --right-notes "60,64"
 ```
 
 ### HTTP API
@@ -43,8 +50,15 @@ Available endpoints:
 - `GET /health`
 - `GET /capabilities`
 - `POST /v1/score`
+- `POST /v1/render`
 - `POST /v1/workflows/full`
 - `POST /v1/references/search`
+- `POST /v1/midi/diff`
+- `POST /v1/midi/inspect`
+- `POST /v1/midi/query`
+- `POST /v1/playability`
+- `GET /v1/artifacts/{workflow_id}`
+- `GET /v1/workflows/{workflow_id}/checkpoints`
 
 ## Installation
 
@@ -76,11 +90,15 @@ npm install -g @eldment/meting-agent
 - `Meting-Agent`
   Used for reference song and lyric search.
 
+- `midi-composer-mcp`
+  Optional sidecar for deterministic composition theory tools. Recommended as a bridge while we build the highest-value native MIDI endpoints.
+
 ### Optional advanced integrations
 
 - memory integration
 - embedding-backed recall
 - browser/research integration
+- `reaper-mcp` for DAW-backed advanced rendering and mixing
 
 These advanced integrations are intentionally disabled by default and should only be enabled by deployment-specific configuration.
 
@@ -111,8 +129,12 @@ The test suite validates:
 - API routes
 - adapter target resolution
 - expected project layout
+- workflow manifest persistence
+- sidecar integration wrappers
+- native MIDI diff and playability utilities
 
 ## Notes
 
 - The old `scripts/` commands still exist, but they now act as compatibility entrypoints into the package.
 - Do not hardcode server paths, secrets, or local machine paths into this repository.
+- The core architecture remains: Agent decides, Engine executes deterministically.
