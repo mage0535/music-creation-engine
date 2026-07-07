@@ -1,0 +1,22 @@
+[
+  {
+    "stage": "score",
+    "payload": {
+      "status": "dry-run",
+      "reason": "music21 is not installed. Install the music extra or run install.sh first.",
+      "error_code": "MISSING_DEPENDENCY",
+      "midi": "build\\output\\song.mid",
+      "pdf": "build\\output\\song.pdf",
+      "musicxml": "build\\output\\song.musicxml"
+    }
+  },
+  {
+    "stage": "render",
+    "payload": {
+      "status": "dry-run",
+      "reason": "MIDI file not found: build\\output\\song.mid",
+      "error_code": "FILE_NOT_FOUND",
+      "mp3": "build\\output\\song.mp3"
+    }
+  }
+]
