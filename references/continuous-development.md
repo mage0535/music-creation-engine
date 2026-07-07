@@ -2149,3 +2149,93 @@ The project is now best described as:
 ### Impact
 
 This pass did not change the core architecture. It deepened the practical editing and lifecycle surface so the engine behaves more like a real creative workbench and less like a one-shot generator.
+---
+
+## 2026-07-07 (Session 16 — Enhancement Consolidation And Final Live Result)
+
+### What was added in this pass
+
+- Native MIDI transform operations:
+  - transpose
+  - replace_phrase
+  - reverse
+  - invert
+- API route:
+  - `POST /v1/midi/transform`
+- CLI command:
+  - `music-creation-engine midi transform`
+
+- Additional workflow lifecycle controls are now available in both API and CLI:
+  - list
+  - retry
+  - cancel
+  - delete
+  - cleanup
+
+- Artifact service now supports:
+  - workflow directory listing
+  - cancellation marker files
+  - retention cleanup
+
+- Reference search fallback is now practically usable:
+  - first try Meting CLI contract
+  - then try Meting MCP stdio contract
+  - then fall back to public HTTP search with normalized song metadata
+
+### Final local verification after enhancement pass
+
+- `pytest`: **60 passed**
+- `tests/e2e_http_workflow.py`: **30 passed / 0 failed**
+- install path validation: passed
+
+### Final server-side live verification after enhancement pass
+
+A full live HTTP workflow run was executed again on the Hermes server after the enhancement delta was synced.
+
+#### Verified in real server environment
+
+- note-name melody input over HTTP
+- sync workflow
+- async workflow
+- stable async `workflow_id`
+- status polling
+- manifest retrieval
+- checkpoint retrieval
+- artifact file serving
+- revision with `render_demo=false`
+- retry
+- list
+- cancel
+- delete
+- cleanup
+- MIDI inspect/query/diff-files against generated MIDI
+- playability
+- reference search returning real structured fallback data
+
+#### Observed real reference-search fallback data
+
+When the preferred Meting route did not return structured search results, the fallback returned real metadata including:
+
+- `provider`
+- `title`
+- `artist`
+- `album`
+- `preview_url`
+
+In the live server test this produced real songs for `Jay Chou`, not placeholder output.
+
+### Final assessment after all implemented work
+
+The current version is now best described as:
+
+> **A stable, deployable, real-environment-tested music workflow engine with working composition, rendering, artifact lifecycle, revision, async workflow handling, MIDI utility surface, playability checks, and practical reference search fallback.**
+
+### What remains beyond this phase
+
+The following are now enhancement opportunities rather than blocking work:
+
+- deeper Meting normalization and provider-specific fields
+- stronger async orchestration beyond thread + file status
+- richer native MIDI editing/transformation beyond the current core set
+- stronger playability heuristics
+- deeper `midi-composer-mcp` and `reaper-mcp` integration
