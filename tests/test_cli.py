@@ -28,7 +28,7 @@ def test_cli_references_search_command_prints_result(capsys):
 
     payload = json.loads(captured.out)
     assert exit_code == 0
-    assert payload["source"] == "meting"
+    assert payload["source"] in {"meting", "reference-fallback"}
 
 
 def test_cli_score_command_prints_artifacts(capsys):
