@@ -299,6 +299,16 @@ class MidiQueryRequest:
 
 
 @dataclass
+class MidiTransformRequest:
+    notes: list[int]
+    operation: str
+    semitones: int = 0
+    start: int = 0
+    end: int = 0
+    replacement: list[int] = field(default_factory=list)
+
+
+@dataclass
 class PlayabilityRequest:
     instrument: str
     notes: list[int]
