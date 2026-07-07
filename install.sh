@@ -4,7 +4,7 @@
 # AI-Agent Friendly Installer
 # ============================================================================
 # After running this, tell your AI agent: "I have the music-creation-engine
-# installed. Load the skill from ~/.your-agent/skills/music-creation/SKILL.md"
+# installed. Load the skill from ~/.your-agent/skills/music-creation-engine/SKILL.md"
 # ============================================================================
 
 set -e
@@ -101,12 +101,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Try common agent skill directories
 SKILL_DIRS=()
 if [[ -n "$HERMES_HOME" ]]; then
-    SKILL_DIRS+=("$HERMES_HOME/skills/music-creation")
+    SKILL_DIRS+=("$HERMES_HOME/skills/creative/music-creation-engine")
 elif [[ -d "$HOME/.hermes" ]]; then
-    SKILL_DIRS+=("$HOME/.hermes/skills/music-creation")
+    SKILL_DIRS+=("$HOME/.hermes/skills/creative/music-creation-engine")
+fi
+if [[ -n "${CODEX_HOME:-}" ]]; then
+    SKILL_DIRS+=("$CODEX_HOME/skills/music-creation-engine")
+elif [[ -d "$HOME/.codex" ]]; then
+    SKILL_DIRS+=("$HOME/.codex/skills/music-creation-engine")
 fi
 if [[ -d "$HOME/.claude/skills" ]]; then
-    SKILL_DIRS+=("$HOME/.claude/skills/music-creation")
+    SKILL_DIRS+=("$HOME/.claude/skills/music-creation-engine")
 fi
 if [[ -n "$HOME" ]]; then
     SKILL_DIRS+=("$HOME/music-creation-engine")
@@ -130,7 +135,7 @@ if ! $INSTALLED; then
     cp "$SCRIPT_DIR/references/"*.md "$FALLBACK/references/" 2>/dev/null
     cp "$SCRIPT_DIR/README.md" "$FALLBACK/" 2>/dev/null
     echo -e "  ${GREEN}✓${NC} Installed to: $FALLBACK"
-    echo -e "  ${YELLOW}💡${NC} Tell your AI: 'Load the music-creation skill from $FALLBACK/SKILL.md'"
+    echo -e "  ${YELLOW}💡${NC} Tell your AI: 'Load the music-creation-engine skill from $FALLBACK/SKILL.md'"
 fi
 
 # ── Step 5: Verify installation ──────────────────────────────────────
