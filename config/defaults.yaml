@@ -1,0 +1,14 @@
+project:
+  output_dir: build/output
+
+integrations:
+  meting_enabled: true
+  advanced_enabled: false
+  memory_enabled: false
+  research_enabled: false
+
+tools:
+  ffmpeg_command: ffmpeg
+  lilypond_command: lilypond
+  fluidsynth_command: fluidsynth
+  npx_command: npx
