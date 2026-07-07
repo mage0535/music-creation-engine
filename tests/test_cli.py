@@ -75,6 +75,16 @@ def test_cli_midi_diff_command_prints_changes(capsys):
     assert payload["added"] == [64]
 
 
+def test_cli_midi_transform_command(capsys):
+    exit_code = main(["midi", "transform", "--notes", "60,62,64", "--operation", "transpose", "--semitones", "2"])
+
+    captured = capsys.readouterr()
+
+    payload = json.loads(captured.out)
+    assert exit_code == 0
+    assert payload["notes"] == [62, 64, 66]
+
+
 def test_cli_workflow_status_and_manifest(capsys):
     create = main(["workflow", "full", "--lyrics", "hello", "--output", "build/output/song", "--no-render-demo"])
     created = json.loads(capsys.readouterr().out)
