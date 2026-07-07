@@ -57,3 +57,35 @@ def test_meting_integration_can_parse_mcp_protocol(monkeypatch):
     result = MetingIntegration(enabled=True, command="npx").search("test", "netease")
 
     assert result.payload["songs"][0]["title"] == "Song B"
+
+
+def test_meting_integration_falls_back_to_http_search(monkeypatch):
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {
+                    "results": [
+                        {
+                            "trackName": "Blue Train",
+                            "artistName": "John Coltrane",
+                            "collectionName": "Blue Train",
+                            "previewUrl": "https://example.test/preview.mp3",
+                        }
+                    ]
+                }
+            ).encode()
+
+    monkeypatch.setattr("music_creation_engine.integrations.meting.subprocess.run", lambda *a, **k: subprocess.CompletedProcess(a[0], 1, "", ""))
+    monkeypatch.setattr("music_creation_engine.integrations.meting.subprocess.Popen", lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()))
+    monkeypatch.setattr("music_creation_engine.integrations.meting.urlopen", lambda *a, **k: FakeResponse())
+
+    result = MetingIntegration(enabled=True, command="npx").search("blue train", "netease")
+
+    assert result.payload["provider"] == "itunes"
+    assert result.payload["songs"][0]["title"] == "Blue Train"
