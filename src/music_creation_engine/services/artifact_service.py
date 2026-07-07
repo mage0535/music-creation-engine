@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import uuid
 from dataclasses import asdict
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,9 @@ class ArtifactService:
         path = self.base_dir / workflow_id
         path.mkdir(parents=True, exist_ok=True)
         return path
+
+    def workflow_dir_path(self, workflow_id: str) -> Path:
+        return self.base_dir / workflow_id
 
     def manifest_path(self, workflow_id: str) -> Path:
         return self.workflow_dir(workflow_id) / "manifest.json"
@@ -50,3 +54,56 @@ class ArtifactService:
         if not path.exists():
             return []
         return json.loads(path.read_text(encoding="utf-8"))
+
+    def artifacts_subdir(self, workflow_id: str) -> Path:
+        path = self.workflow_dir(workflow_id) / "artifacts"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def resolve_file(self, workflow_id: str, filename: str) -> Path:
+        return self.artifacts_subdir(workflow_id) / filename
+
+    def list_workflows(self) -> list[dict[str, Any]]:
+        results: list[dict[str, Any]] = []
+        for child in sorted(self.base_dir.iterdir()):
+            if not child.is_dir():
+                continue
+            results.append(
+                {
+                    "workflow_id": child.name,
+                    "has_manifest": (child / "manifest.json").exists(),
+                    "has_status": (child / "status.json").exists(),
+                }
+            )
+        return results
+
+    def delete_workflow(self, workflow_id: str) -> None:
+        path = self.workflow_dir_path(workflow_id)
+        if path.exists():
+            import shutil
+
+            shutil.rmtree(path)
+
+    def cancel_requested_path(self, workflow_id: str) -> Path:
+        return self.workflow_dir(workflow_id) / "cancel.requested"
+
+    def request_cancel(self, workflow_id: str) -> None:
+        self.cancel_requested_path(workflow_id).write_text("cancelled\n", encoding="utf-8")
+
+    def is_cancel_requested(self, workflow_id: str) -> bool:
+        return self.cancel_requested_path(workflow_id).exists()
+
+    def cleanup_expired(self, retention_days: int) -> list[str]:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+        deleted: list[str] = []
+        for item in list(self.base_dir.iterdir()):
+            if not item.is_dir():
+                continue
+            modified = datetime.fromtimestamp(item.stat().st_mtime, tz=timezone.utc)
+            if modified <= cutoff:
+                try:
+                    self.delete_workflow(item.name)
+                    deleted.append(item.name)
+                except PermissionError:
+                    continue
+        return deleted
