@@ -22,6 +22,8 @@ class DefaultRenderBackend:
             return render_demo_artifacts(request)
         except EngineError as exc:
             logger.error("render: engine error code=%s message=%s", exc.code.value, exc.message)
+            if exc.code in (ErrorCode.MISSING_DEPENDENCY, ErrorCode.FILE_NOT_FOUND):
+                raise
             return {
                 "status": "dry-run",
                 "reason": exc.message,
@@ -30,12 +32,11 @@ class DefaultRenderBackend:
             }
         except Exception as exc:
             logger.exception("render: unexpected error")
-            return {
-                "status": "dry-run",
-                "reason": str(exc),
-                "error_code": ErrorCode.RUNTIME_FAILURE.value,
-                "mp3": str(Path(request.output_base).with_suffix(".mp3")),
-            }
+            raise EngineError(
+                code=ErrorCode.RUNTIME_FAILURE,
+                message="Render failed unexpectedly",
+                detail=str(exc),
+            ) from exc
 
 
 @dataclass
