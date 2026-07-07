@@ -6,6 +6,13 @@
 | --- | --- | --- |
 | Meting-Agent | Enabled | Publicly installable and directly relevant to reference music search |
 
+## Optional sidecar integrations
+
+| Integration | Default | Why |
+| --- | --- | --- |
+| midi-composer-mcp | Disabled | Very high value for deterministic theory/composition tools, but best introduced as explicit sidecar |
+| reaper-mcp | Disabled | Strong advanced backend for REAPER users only |
+
 ## Optional advanced integrations
 
 | Integration | Default | Why not default |
