@@ -1,0 +1,52 @@
+{
+  "workflow_id": "18774e3b79b5",
+  "score": {
+    "status": "dry-run",
+    "reason": "music21 is not installed. Install the music extra or run install.sh first.",
+    "error_code": "MISSING_DEPENDENCY",
+    "midi": "build\\workflows\\18774e3b79b5\\artifacts\\composition.mid",
+    "pdf": "build\\workflows\\18774e3b79b5\\artifacts\\composition.pdf",
+    "musicxml": "build\\workflows\\18774e3b79b5\\artifacts\\composition.musicxml"
+  },
+  "render": {
+    "status": "dry-run",
+    "reason": "MIDI file not found: build\\workflows\\18774e3b79b5\\artifacts\\composition.mid",
+    "error_code": "FILE_NOT_FOUND",
+    "mp3": "build\\workflows\\18774e3b79b5\\artifacts\\composition.mp3"
+  },
+  "request": {
+    "lyrics": "hello world",
+    "output_base": "build/output/song",
+    "key": "C",
+    "bpm": 120,
+    "instruments": "piano,vocals",
+    "style": "pop",
+    "render_demo": true,
+    "chord_progression": [],
+    "sections": [],
+    "melody": {},
+    "instrument_roles": {}
+  },
+  "checkpoints": [
+    {
+      "stage": "score",
+      "payload": {
+        "status": "dry-run",
+        "reason": "music21 is not installed. Install the music extra or run install.sh first.",
+        "error_code": "MISSING_DEPENDENCY",
+        "midi": "build\\workflows\\18774e3b79b5\\artifacts\\composition.mid",
+        "pdf": "build\\workflows\\18774e3b79b5\\artifacts\\composition.pdf",
+        "musicxml": "build\\workflows\\18774e3b79b5\\artifacts\\composition.musicxml"
+      }
+    },
+    {
+      "stage": "render",
+      "payload": {
+        "status": "dry-run",
+        "reason": "MIDI file not found: build\\workflows\\18774e3b79b5\\artifacts\\composition.mid",
+        "error_code": "FILE_NOT_FOUND",
+        "mp3": "build\\workflows\\18774e3b79b5\\artifacts\\composition.mp3"
+      }
+    }
+  ]
+}
