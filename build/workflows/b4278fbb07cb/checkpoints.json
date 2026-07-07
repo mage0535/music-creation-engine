@@ -1,0 +1,13 @@
+[
+  {
+    "stage": "score",
+    "payload": {
+      "status": "dry-run",
+      "reason": "music21 is not installed. Install the music extra or run install.sh first.",
+      "error_code": "MISSING_DEPENDENCY",
+      "midi": "build\\workflows\\b4278fbb07cb\\artifacts\\composition.mid",
+      "pdf": "build\\workflows\\b4278fbb07cb\\artifacts\\composition.pdf",
+      "musicxml": "build\\workflows\\b4278fbb07cb\\artifacts\\composition.musicxml"
+    }
+  }
+]
