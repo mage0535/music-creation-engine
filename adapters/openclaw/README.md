@@ -16,8 +16,11 @@ This directory contains the OpenClaw-facing integration notes for `music-creatio
 - render
 - workflow full
 - references search
+- midi diff / inspect / query
+- playability
 
 ## Integration policy
 
 - Enable `meting` by default.
 - Keep advanced memory and research integrations disabled unless explicitly requested.
+- Prefer structured score input (`chord_progression`, `sections`, `melody`, `instrument_roles`) when the prompt already contains a concrete composition plan.
