@@ -4,6 +4,8 @@ import json
 import os
 import subprocess
 import time
+from urllib.parse import urlencode
+from urllib.request import urlopen
 from dataclasses import dataclass
 
 from music_creation_engine.integrations.base import IntegrationResult
@@ -122,6 +124,25 @@ class MetingIntegration:
         finally:
             proc.kill()
 
+    def _search_via_http_fallback(self, keyword: str) -> dict[str, object] | None:
+        query = urlencode({"term": keyword, "entity": "song", "limit": 5})
+        with urlopen(f"https://itunes.apple.com/search?{query}", timeout=10) as response:
+            payload = json.loads(response.read().decode())
+        songs = []
+        for item in payload.get("results", []):
+            songs.append(
+                {
+                    "title": item.get("trackName"),
+                    "artist": item.get("artistName"),
+                    "album": item.get("collectionName"),
+                    "preview_url": item.get("previewUrl"),
+                    "provider": "itunes",
+                }
+            )
+        if songs:
+            return {"provider": "itunes", "songs": songs}
+        return None
+
     def search(self, keyword: str, platform: str = "netease") -> IntegrationResult:
         if self.enabled:
             try:
@@ -129,7 +150,7 @@ class MetingIntegration:
                     [self.command, "@eldment/meting-agent", "search", "--platform", platform, "--keyword", keyword],
                     capture_output=True,
                     text=True,
-                    timeout=30,
+                    timeout=5,
                     check=False,
                 )
                 if result.returncode == 0 and result.stdout.strip():
@@ -145,6 +166,12 @@ class MetingIntegration:
                 if payload:
                     return IntegrationResult(payload=payload, source="meting")
             except (FileNotFoundError, subprocess.SubprocessError):
+                pass
+            try:
+                payload = self._search_via_http_fallback(keyword)
+                if payload:
+                    return IntegrationResult(payload=payload, source="reference-fallback")
+            except Exception:
                 pass
         return IntegrationResult(
             payload={
