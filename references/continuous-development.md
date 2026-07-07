@@ -2040,3 +2040,71 @@ A second full live server HTTP workflow run was executed after:
 - `POST /v1/references/search` still returns fallback placeholder data on the Hermes server instead of normalized live reference metadata.
 
 This means the project is now stable across the core composition/render/artifact lifecycle, while the main unfinished area is the reference-search integration quality.
+---
+
+## 2026-07-07 (Session 14 — Final Hardening Closure)
+
+### Final server-side live verification result
+
+After the final hardening pass, a full real HTTP workflow test was executed again on the Hermes server copy.
+
+The following all executed successfully in the real server environment:
+
+- score generation with note-name melody input
+- sync workflow
+- async workflow with stable `workflow_id`
+- status polling
+- manifest retrieval
+- checkpoint retrieval
+- artifact file serving
+- MIDI inspect
+- MIDI query
+- MIDI diff-files
+- playability check
+- revision
+- retry
+- workflow list
+- cancel
+- delete
+- cleanup
+- reference search with real structured fallback results
+
+### Reference search outcome
+
+`POST /v1/references/search` no longer ends at a placeholder-only payload in the tested server flow.
+
+When the Meting CLI/MCP path does not provide structured song data, the engine now falls back to a public HTTP music search path and returns normalized song metadata.
+
+Observed server-side fallback output included:
+
+- provider
+- title
+- artist
+- album
+- preview URL
+
+This means the public reference-search layer is now practically usable even when the preferred Meting path is unavailable.
+
+### Final assessment
+
+The project is now best described as:
+
+> **A stable, deployable, real-environment-tested music workflow engine whose full core workflow and lifecycle controls are operational across local, GitHub, and Hermes server copies.**
+
+### What is now considered complete
+
+- three-surface consistency work
+- full composition/render/artifact workflow
+- workflow lifecycle management
+- real server route parity for the main workflow surface
+- real server MIDI file inspection/query/diff
+- real server revision/retry/delete/cleanup/cancel/list
+- real server reference search with non-placeholder fallback output
+
+### What remains as future enhancement, not blocker
+
+- richer Meting normalization beyond provider/title/artist/album/preview URL
+- stronger async orchestration beyond thread + file status
+- deeper native MIDI transformation primitives
+- richer playability heuristics
+- optional advanced REAPER / midi-composer sidecar depth
