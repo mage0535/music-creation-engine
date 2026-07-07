@@ -2006,3 +2006,37 @@ Only after the above is stable:
 - richer native MIDI transforms
 - stronger playability heuristics
 - optional `reaper-mcp` advanced backend
+
+### Final verification update after hardening
+
+A second full live server HTTP workflow run was executed after:
+
+- lifecycle route additions
+- async workflow ID fix
+- MIDI file parsing fix
+- revision render flag fix
+- workflow delete / cleanup / retry / cancel support
+- Docker / compose hardening
+
+#### Verified live on server
+
+- note-name melody accepted over HTTP
+- sync workflow end-to-end
+- async workflow end-to-end
+- status polling
+- artifact manifest retrieval
+- checkpoint retrieval
+- file serving for MIDI / MusicXML / LilyPond / PDF / WAV / MP3
+- MIDI inspect/query/diff-files against generated MIDI
+- playability endpoint
+- revision endpoint
+- retry endpoint
+- delete endpoint
+- cleanup endpoint
+- workflow list endpoint
+
+#### Remaining weak point
+
+- `POST /v1/references/search` still returns fallback placeholder data on the Hermes server instead of normalized live reference metadata.
+
+This means the project is now stable across the core composition/render/artifact lifecycle, while the main unfinished area is the reference-search integration quality.
