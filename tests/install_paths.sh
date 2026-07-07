@@ -68,6 +68,7 @@ test_codex_install_path() {
 
   assert_exists "$CODEX_HOME/skills/music-creation-engine/SKILL.md"
   assert_exists "$CODEX_HOME/skills/music-creation-engine/scripts/sheet_music_generator.py"
+  assert_exists "$CODEX_HOME/skills/music-creation-engine/adapters/codex/AGENTS.md"
 }
 
 test_hermes_install_path() {
@@ -85,6 +86,7 @@ test_hermes_install_path() {
 
   assert_exists "$HOME/.hermes/skills/creative/music-creation-engine/SKILL.md"
   assert_exists "$HOME/.hermes/skills/creative/music-creation-engine/references/install-guide.md"
+  assert_exists "$HOME/.hermes/skills/creative/music-creation-engine/adapters/hermes/SKILL.md"
 }
 
 test_codex_install_path
