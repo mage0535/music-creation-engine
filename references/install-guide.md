@@ -19,6 +19,14 @@ npm install -g @eldment/meting-agent
 
 This is the only integration expected to be enabled by default.
 
+## Optional sidecar integrations
+
+```bash
+npm install -g midi-composer-mcp
+```
+
+`reaper-mcp` remains optional and should only be configured on machines that actually have REAPER available.
+
 ## Agent bundle install
 
 ```bash
@@ -46,6 +54,9 @@ uvicorn music_creation_engine.api.app:create_app --factory --host 0.0.0.0 --port
 music-creation-engine health
 music-creation-engine capabilities
 music-creation-engine references search --keyword "Lo-fi"
+music-creation-engine score --lyrics "hello world" --output build/output/song --chord-progression "Am,F,C,G"
+music-creation-engine workflow full --lyrics "hello world" --output build/output/song
+music-creation-engine midi diff --left-notes "60,62" --right-notes "60,64"
 ```
 
 ## Advanced integrations
@@ -55,3 +66,4 @@ Advanced integrations should be configured manually per deployment. They are not
 - memory integration
 - embedding integration
 - browser/research integration
+- REAPER-backed advanced rendering
