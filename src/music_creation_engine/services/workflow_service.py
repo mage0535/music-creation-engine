@@ -16,10 +16,10 @@ class WorkflowService:
     render_service: RenderService
     artifact_service: ArtifactService | None = None
 
-    def run_full(self, request: WorkflowRequest) -> dict[str, object]:
+    def run_full(self, request: WorkflowRequest, workflow_id: str | None = None) -> dict[str, object]:
         if self.artifact_service is None:
             self.artifact_service = ArtifactService("build/workflows")
-        workflow_id = self.artifact_service.create_workflow_id()
+        workflow_id = workflow_id or self.artifact_service.create_workflow_id()
         artifacts_dir = self.artifact_service.artifacts_subdir(workflow_id)
         output_base = str(artifacts_dir / "composition")
         score_result = self.score_service.generate(
