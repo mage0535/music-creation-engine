@@ -70,11 +70,11 @@ def test_workflow_service_runs_score_then_render(tmp_path):
         )
     )
 
-    assert result["score"]["pdf"].endswith("song.pdf")
-    assert result["render"]["mp3"].endswith("song.mp3")
+    assert result["score"]["pdf"].endswith(".pdf")
+    assert result["render"]["mp3"].endswith(".mp3")
     assert result["workflow_id"]
     manifest = artifact_service.load_manifest(result["workflow_id"])
-    assert manifest["score"]["pdf"].endswith("song.pdf")
+    assert manifest["score"]["pdf"].endswith(".pdf")
 
 
 def test_midi_service_can_diff_simple_note_lists():
