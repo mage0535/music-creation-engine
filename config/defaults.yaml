@@ -1,14 +1,21 @@
 project:
   output_dir: build/output
+  workflow_dir: build/workflows
 
 integrations:
   meting_enabled: true
   advanced_enabled: false
   memory_enabled: false
   research_enabled: false
+  midi_composer_enabled: false
+  midi_composer_command: midi-composer-mcp
+  reaper_enabled: false
 
 tools:
   ffmpeg_command: ffmpeg
   lilypond_command: lilypond
   fluidsynth_command: fluidsynth
   npx_command: npx
+  meting_command: npx
+  midi_composer_command: midi-composer-mcp
+  reaper_command: reaper-mcp
