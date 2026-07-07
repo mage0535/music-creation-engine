@@ -52,9 +52,9 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | npx @eldment
 
 ```bash
 # 复制到你的 Agent 的 skills 目录
-cp SKILL.md ~/.your-agent/skills/music-creation/SKILL.md
-mkdir -p ~/.your-agent/skills/music-creation/scripts/
-cp scripts/* ~/.your-agent/skills/music-creation/scripts/
+cp SKILL.md ~/.your-agent/skills/music-creation-engine/SKILL.md
+mkdir -p ~/.your-agent/skills/music-creation-engine/scripts/
+cp scripts/* ~/.your-agent/skills/music-creation-engine/scripts/
 ```
 
 ### 5. 工具清单注册
@@ -65,7 +65,7 @@ cp scripts/* ~/.your-agent/skills/music-creation/scripts/
 music_creation:
   status: active
   version: 1.0.0
-  skill: music-creation
+  skill: music-creation-engine
   scripts:
   - sheet_music_generator.py
   - demo_renderer.py
@@ -113,7 +113,7 @@ ls -lh /tmp/music_test/test_demo.mp3
 
 本套件被设计为**即插即用**：
 
-- **使用 Hermes Agent**: 直接 skill_view('music-creation') 加载
+- **使用 Hermes Agent**: 直接 skill_view('music-creation-engine') 加载
 - **使用 Claude Code**: 复制 SKILL.md 到 `~/.claude/skills/`
 - **使用 Cursor**: 复制 README.md 到项目文档
 - **使用任何 LLM**: 粘贴 README.md 到系统提示词，LLM 即可理解完整管线
