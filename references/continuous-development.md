@@ -1865,3 +1865,144 @@ The main issue is now:
 > **Can the deployed server copy be trusted to expose the same workflow contract the repository claims?**
 
 As of this live test, the answer is **not yet**.
+---
+
+## 2026-07-07 (Session 13 — Hardening, Lifecycle Controls, Final Live Verification)
+
+> **Status:** Implemented and verified. This session focused on productization hardening rather than adding new composition features.
+
+### What was added
+
+#### 1. Workflow lifecycle controls
+
+- `GET /v1/workflows`
+- `POST /v1/workflows/{workflow_id}/retry`
+- `POST /v1/workflows/{workflow_id}/cancel`
+- `DELETE /v1/workflows/{workflow_id}`
+- `POST /v1/workflows/cleanup?retention_days=N`
+
+Artifact service additions:
+
+- `list_workflows()`
+- `delete_workflow()`
+- `request_cancel()`
+- `is_cancel_requested()`
+- `cleanup_expired()`
+
+#### 2. CLI management surface expanded
+
+CLI now supports:
+
+- `workflow list`
+- `workflow status`
+- `workflow revise`
+- `workflow retry`
+- `workflow cancel`
+- `workflow delete`
+- `workflow cleanup`
+- `artifacts manifest`
+
+#### 3. Docker/compose hardening
+
+- Added Docker healthcheck
+- Added `MCE_WORKFLOW_DIR` env to compose
+- Added `references/current-state.md` as a compressed status snapshot
+- Rewrote README to reflect the actual route/CLI surface
+
+#### 4. Meting integration hardening
+
+- Added a time-bounded MCP stdio client path
+- Kept CLI-style subprocess path as first attempt
+- Safe fallback remains when neither path returns structured data
+
+#### 5. Bug fixes from live testing
+
+- Fixed `music21` MIDI inspect/query path:
+  - `score.flatten().notes` instead of `score.flatten.notes`
+- Fixed async workflow `workflow_id` mismatch:
+  - async result now reuses the queued `workflow_id`
+- Fixed revision `render_demo=false` handling:
+  - explicit false no longer gets overwritten by the saved request
+
+### Final local verification
+
+- `pytest`: **54 passed**
+- `tests/e2e_http_workflow.py`: **30 passed / 0 failed**
+- `tests/install_paths.sh`: passed
+
+### Final live server verification
+
+Executed against the synced server copy under:
+
+- `/root/.hermes/skills/creative/music-creation-engine`
+
+using:
+
+- `/root/.hermes/hermes-agent/.venv/bin/python3`
+
+#### What passed in real server HTTP flow
+
+- `GET /health`
+- `GET /capabilities`
+- `POST /v1/score` with note-name melody input
+- `POST /v1/workflows/full` sync
+- `GET /v1/workflows/{id}/status`
+- `GET /v1/artifacts/{id}`
+- `GET /v1/workflows/{id}/checkpoints`
+- `GET /v1/artifacts/{id}/files/{filename}` for:
+  - MIDI
+  - MusicXML
+  - LilyPond
+  - PDF
+  - WAV
+  - MP3
+- `POST /v1/midi/inspect` using generated MIDI path
+- `POST /v1/midi/query` using generated MIDI path
+- `POST /v1/midi/diff-files`
+- `POST /v1/playability`
+- `POST /v1/workflows/{id}/revise`
+- `POST /v1/workflows/{id}/retry`
+- `POST /v1/workflows/full?async=true`
+- `GET /v1/workflows/{id}/status` for async workflow
+- `POST /v1/workflows/{id}/cancel`
+- `GET /v1/workflows`
+- `DELETE /v1/workflows/{id}`
+- `POST /v1/workflows/cleanup`
+
+#### What still did not fully resolve
+
+- `POST /v1/references/search` still falls back to placeholder output on the Hermes server:
+  - payload returns `keyword/platform/enabled/note/source`
+  - no normalized title/artist/BPM/key data yet
+
+**Interpretation:** The core engine and workflow lifecycle are now operational in real deployment. The remaining weak spot is the public reference integration, not the score/render/artifact pipeline.
+
+### Current assessment
+
+The project is now best described as:
+
+> **A stable, deployable workflow engine with a working real server composition/render/artifact lifecycle, but an unfinished reference-search integration layer.**
+
+### Recommended next direction
+
+#### Priority 1
+
+Build a proper `Meting-Agent` MCP client adapter instead of continuing to depend on a possibly non-existent `search` CLI contract.
+
+#### Priority 2
+
+Improve workflow operability:
+
+- cancellation semantics beyond flagging
+- retry lineage
+- retention policy defaults
+- optional scheduled cleanup
+
+#### Priority 3
+
+Only after the above is stable:
+
+- deeper `midi-composer-mcp` integration
+- richer native MIDI transforms
+- stronger playability heuristics
+- optional `reaper-mcp` advanced backend
