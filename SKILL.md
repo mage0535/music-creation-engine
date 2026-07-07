@@ -1,5 +1,5 @@
 ---
-name: music-creation
+name: music-creation-engine
 description: 全流程AI音乐创作引擎 — 作词/作曲/总谱分谱/Demo音频/质量评估/发布的一站式聊天式创作体验
 version: 1.0.0
 tags: [music, composition, lyrics, sheet-music, audio, production]
@@ -63,7 +63,7 @@ load_condition: "识别到用户有音乐相关的创作意图时主动询问是
 调用 `scripts/sheet_music_generator.py`：
 
 ```bash
-python3 ~/.your-agent/skills/music-creation/scripts/sheet_music_generator.py \
+python3 ~/.your-agent/skills/music-creation-engine/scripts/sheet_music_generator.py \
   --lyrics "歌词内容" \
   --key C --bpm 120 \
   --time-signature 4/4 \
@@ -88,7 +88,7 @@ python3 ~/.your-agent/skills/music-creation/scripts/sheet_music_generator.py \
 调用 `scripts/demo_renderer.py`：
 
 ```bash
-python3 ~/.your-agent/skills/music-creation/scripts/demo_renderer.py \
+python3 ~/.your-agent/skills/music-creation-engine/scripts/demo_renderer.py \
   --midi /tmp/music_output/song_name.mid \
   --output /tmp/music_output/song_name_demo \
   --format mp3 --json
