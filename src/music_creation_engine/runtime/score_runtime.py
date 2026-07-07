@@ -16,7 +16,7 @@ def _load_music21():
     except ModuleNotFoundError as exc:
         raise EngineError(
             code=ErrorCode.MISSING_DEPENDENCY,
-            message="music21 is not installed. Install the music extra or run install.sh first.",
+            message="music21 is not installed. Run: pip install music-creation-engine[music]",
         ) from exc
     return chord, instrument, key, meter, metadata, midi, note, stream, tempo
 
@@ -33,7 +33,6 @@ INSTRUMENT_FACTORY = {
     "trumpet": "Trumpet",
     "synth": "Vibraphone",
 }
-
 
 CHORD_PROGRESSIONS = {
     "pop": ["C", "G", "Am", "F"],
@@ -58,27 +57,29 @@ def _chord_root_midi(chord_name: str) -> int:
     return mapping.get(base, 60)
 
 
-def _section_measure_count(request: ScoreRequest) -> int:
+def _resolve_sections(request: ScoreRequest) -> list[dict[str, object]]:
     if request.sections:
-        return sum(int(section.get("bars", 0)) for section in request.sections) or 4
-    return max(4, len([line for line in request.lyrics.splitlines() if line.strip()]) or 4)
+        return request.sections
+    lyrics_lines = len([line for line in request.lyrics.splitlines() if line.strip()]) or 4
+    return [{"name": "song", "bars": lyrics_lines, "key": request.key}]
 
 
-def _build_part(stream_mod, note_mod, chord_mod, instrument_mod, name: str, measures: int, request: ScoreRequest):
-    part = stream_mod.Part()
-    instrument_name = INSTRUMENT_FACTORY.get(name, "Piano")
-    part.insert(0, getattr(instrument_mod, instrument_name)())
-    role = request.instrument_roles.get(name, "chord" if name == "piano" else "melody")
+def _append_bars_for_section(
+    stream_mod, note_mod, chord_mod, part, request: ScoreRequest,
+    instrument_name: str, section: dict[str, object], section_start_bar: int,
+) -> None:
+    bars = int(section.get("bars", 4))
+    role = request.instrument_roles.get(instrument_name, "chord" if instrument_name == "piano" else "melody")
     progression = request.chord_progression or CHORD_PROGRESSIONS.get(request.style, CHORD_PROGRESSIONS["pop"])
-    melody = request.melody.get(name, [])
+    melody = request.melody.get(instrument_name, [])
 
-    if name == "drums":
-        for _ in range(measures):
+    if instrument_name == "drums":
+        for _ in range(bars):
             for midi_pitch in (36, 42, 38, 42):
                 drum = note_mod.Unpitched(midi_pitch)
                 drum.quarterLength = 1
                 part.append(drum)
-        return part
+        return
 
     base_map = {
         "piano": [60, 64, 67, 72],
@@ -91,28 +92,31 @@ def _build_part(stream_mod, note_mod, chord_mod, instrument_mod, name: str, meas
         "trumpet": [67, 69, 71, 74],
         "synth": [68, 72, 75, 79],
     }
-    pitches = base_map.get(name, base_map["piano"])
-    for index in range(measures):
+    pitches = base_map.get(instrument_name, base_map["piano"])
+
+    for i in range(bars):
+        chord_idx = (section_start_bar + i) % len(progression)
         if role == "bass":
-            pitch = _chord_root_midi(progression[index % len(progression)]) - 24
+            pitch = _chord_root_midi(progression[chord_idx]) - 24
             item = note_mod.Note(pitch)
             item.quarterLength = 4
             part.append(item)
             continue
         if role == "pad":
-            root = _chord_root_midi(progression[index % len(progression)])
+            root = _chord_root_midi(progression[chord_idx])
             chord_note = chord_mod.Chord([root, root + 4, root + 7])
             chord_note.quarterLength = 4
             part.append(chord_note)
             continue
-        if role == "chord" or name == "piano":
-            root = _chord_root_midi(progression[index % len(progression)])
+        if role == "chord" or instrument_name == "piano":
+            root = _chord_root_midi(progression[chord_idx])
             chord_note = chord_mod.Chord([root, root + 4, root + 7])
             chord_note.quarterLength = 4
             part.append(chord_note)
             continue
         if melody:
-            pitch = melody[index % len(melody)]
+            note_idx = (section_start_bar + i) % len(melody)
+            pitch = melody[note_idx]
             item = note_mod.Note(pitch)
             item.quarterLength = 1
             part.append(item)
@@ -121,7 +125,6 @@ def _build_part(stream_mod, note_mod, chord_mod, instrument_mod, name: str, meas
             item = note_mod.Note(pitch)
             item.quarterLength = 1
             part.append(item)
-    return part
 
 
 def generate_score_artifacts(request: ScoreRequest) -> dict[str, object]:
@@ -130,12 +133,8 @@ def generate_score_artifacts(request: ScoreRequest) -> dict[str, object]:
     output_base = Path(request.output_base)
     output_base.parent.mkdir(parents=True, exist_ok=True)
     instruments = [item.strip() for item in request.instruments.split(",") if item.strip()]
-    measures = _section_measure_count(request)
-
-    logger.info(
-        "score: start key=%s bpm=%d instruments=%s measures=%d output=%s",
-        request.key, request.bpm, instruments, measures, output_base,
-    )
+    sections = _resolve_sections(request)
+    total_measures = sum(int(s.get("bars", 4)) for s in sections)
 
     score = stream_mod.Score()
     score.insert(0, metadata_mod.Metadata(title=output_base.stem.replace("_", " ").title()))
@@ -143,15 +142,44 @@ def generate_score_artifacts(request: ScoreRequest) -> dict[str, object]:
     score.insert(0, key_mod.Key(request.key))
     score.insert(0, meter_mod.TimeSignature(request.time_signature))
 
-    if request.sections:
-        score.metadata.movementName = ",".join(
-            f"{section.get('name','section')}:{section.get('bars',0)}" for section in request.sections
-        )
+    logger.info(
+        "score: start key=%s bpm=%d instruments=%s measures=%d sections=%d output=%s",
+        request.key, request.bpm, instruments, total_measures, len(sections), output_base,
+    )
+
+    parts: dict[str, object] = {}
+    for instrument_name in instruments:
+        part = stream_mod.Part()
+        instrument_class = INSTRUMENT_FACTORY.get(instrument_name, "Piano")
+        part.insert(0, getattr(instrument_mod, instrument_class)())
+        part.partName = instrument_name
+        parts[instrument_name] = part
+
+    section_start_bar = 0
+    for section in sections:
+        section_bars = int(section.get("bars", 4))
+        section_key = section.get("key", request.key)
+        section_instruments_str = section.get("instruments", "")
+        section_parts = instruments
+        if section_instruments_str:
+            section_parts = [s.strip() for s in str(section_instruments_str).split(",") if s.strip()]
+
+        if section_key != request.key:
+            for part_obj in parts.values():
+                ks = key_mod.Key(section_key)
+                part_obj.append(ks)
+
+        for inst_name in section_parts:
+            if inst_name in parts:
+                _append_bars_for_section(
+                    stream_mod, note_mod, chord_mod, parts[inst_name],
+                    request, inst_name, section, section_start_bar,
+                )
+
+        section_start_bar += section_bars
 
     for instrument_name in instruments:
-        part = _build_part(stream_mod, note_mod, chord_mod, instrument_mod, instrument_name, measures, request)
-        part.partName = instrument_name
-        score.append(part)
+        score.append(parts[instrument_name])
 
     lyric_words = [word for line in request.lyrics.splitlines() for word in line.split()]
     for part in score.parts:
@@ -164,6 +192,7 @@ def generate_score_artifacts(request: ScoreRequest) -> dict[str, object]:
     results: dict[str, object] = {
         "status": "ok",
         "parts": instruments,
+        "sections": sections,
         "request_echo": {
             "chord_progression": request.chord_progression,
             "sections": request.sections,
