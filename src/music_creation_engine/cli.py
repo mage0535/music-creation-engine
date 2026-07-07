@@ -16,6 +16,7 @@ from music_creation_engine.models import (
     MidiDiffRequest,
     MidiInspectRequest,
     MidiQueryRequest,
+    MidiTransformRequest,
     PlayabilityRequest,
     ReferenceSearchRequest,
     RenderRequest,
@@ -318,6 +319,22 @@ def cmd_midi_query(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_midi_transform(args: argparse.Namespace) -> int:
+    service = MidiService()
+    result = service.transform(
+        MidiTransformRequest(
+            notes=[int(item) for item in args.notes.split(",") if item],
+            operation=args.operation,
+            semitones=args.semitones,
+            start=args.start,
+            end=args.end,
+            replacement=[int(item) for item in args.replacement.split(",") if item] if args.replacement else [],
+        )
+    )
+    _print_json(result)
+    return 0
+
+
 def cmd_playability(args: argparse.Namespace) -> int:
     service = PlayabilityService()
     result = service.evaluate(
@@ -414,6 +431,13 @@ def build_parser() -> argparse.ArgumentParser:
     midi_query.add_argument("--notes", required=True)
     midi_query.add_argument("--min-pitch", type=int)
     midi_query.add_argument("--max-pitch", type=int)
+    midi_transform = midi_subparsers.add_parser("transform")
+    midi_transform.add_argument("--notes", required=True)
+    midi_transform.add_argument("--operation", required=True)
+    midi_transform.add_argument("--semitones", type=int, default=0)
+    midi_transform.add_argument("--start", type=int, default=0)
+    midi_transform.add_argument("--end", type=int, default=0)
+    midi_transform.add_argument("--replacement", default="")
     playability = subparsers.add_parser("playability")
     playability.add_argument("--instrument", required=True)
     playability.add_argument("--notes", required=True)
@@ -462,6 +486,9 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "midi" and args.midi_command == "query":
             return cmd_midi_query(args)
+
+        if args.command == "midi" and args.midi_command == "transform":
+            return cmd_midi_transform(args)
 
         if args.command == "playability":
             return cmd_playability(args)
