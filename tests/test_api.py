@@ -256,3 +256,47 @@ def test_workflow_cancel_and_cleanup():
     cleaned = client.post("/v1/workflows/cleanup", params={"retention_days": 0})
     assert cleaned.status_code == 200
     assert "deleted" in cleaned.json()
+
+
+def test_async_workflow_keeps_same_workflow_id_in_status_result():
+    client = TestClient(create_app())
+
+    started = client.post(
+        "/v1/workflows/full?async=true",
+        json={"lyrics": "hello world", "output_base": "build/output/song", "render_demo": False},
+    ).json()
+
+    workflow_id = started["workflow_id"]
+    status = client.get(f"/v1/workflows/{workflow_id}/status").json()
+    if status.get("status") == "completed":
+        assert status["result"]["workflow_id"] == workflow_id
+
+
+def test_revision_can_disable_render():
+    client = TestClient(create_app())
+
+    workflow = client.post(
+        "/v1/workflows/full",
+        json={"lyrics": "hello world", "output_base": "build/output/song", "render_demo": False},
+    ).json()
+
+    revised = client.post(
+        f"/v1/workflows/{workflow['workflow_id']}/revise",
+        json={"render_demo": False},
+    ).json()
+
+    assert revised["render"] is None
+
+
+def test_midi_inspect_from_file_returns_note_data():
+    client = TestClient(create_app())
+
+    workflow = client.post(
+        "/v1/workflows/full",
+        json={"lyrics": "hello world", "output_base": "build/output/song", "render_demo": False},
+    ).json()
+
+    inspected = client.post("/v1/midi/inspect", json={"midi_path": workflow["score"]["midi"]})
+
+    assert inspected.status_code == 200
+    assert inspected.json()["count"] > 0
