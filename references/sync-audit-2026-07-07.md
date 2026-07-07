@@ -21,6 +21,7 @@
   - `references/deployment-notes.md`
   - `references/evaluation-criteria.md`
   - `references/music21-api-notes.md`
+- 新增了真正项目化所需的包结构、CLI、API、适配器、示例工作流和持续开发文档。
 - 统一 Skill 命名与安装路径为 `music-creation-engine`。
 - 为 `install.sh` 增加 Codex 与 Hermes Creative 路径适配测试。
 
