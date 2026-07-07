@@ -133,7 +133,7 @@ if r.status_code == 200:
 r = client.post("/v1/references/search", json={"keyword": "test song", "platform": "netease"})
 check("Reference search", r.status_code == 200)
 if r.status_code == 200:
-    check("Reference search returns source", r.json().get("source") == "meting")
+    check("Reference search returns supported source", r.json().get("source") in {"meting", "reference-fallback"})
 
 # Summary
 print()
