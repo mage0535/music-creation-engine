@@ -113,7 +113,7 @@ Supports per-instrument part extraction (piano, vocals, guitar, bass, drums, str
 
 | Environment / 环境 | Status / 状态 | Notes / 说明 |
 |-------------------|---------------|-------------|
-| **Hermes Agent** | ✅ 原生支持 | `skill_view('music-creation')` 自动加载 |
+| **Hermes Agent** | ✅ 原生支持 | `skill_view('music-creation-engine')` 自动加载 |
 | **Claude Code** | ✅ 直接复制 | 复制 SKILL.md 到 `~/.claude/skills/` |
 | **Cursor / Codex** | ✅ 项目引用 | 在项目文档中引用 README 即可 |
 | **纯 LLM 聊天** | ✅ 粘贴可用 | 把 README 丢进系统提示词，大模型就能理解 |
@@ -197,12 +197,12 @@ ffmpeg version 6.1.1
 ### For AI Coding Agents / 给 AI 编码助手
 
 **EN:** Tell your AI assistant:
-> "I have the music-creation-engine installed. Load the SKILL.md from `~/.your-agent/skills/music-creation/SKILL.md`"
+> "I have the music-creation-engine installed. Load the SKILL.md from `~/.your-agent/skills/music-creation-engine/SKILL.md`"
 
 The agent will then detect music-related intents in your conversation and proactively offer: "Want me to help turn this into a song?"
 
 **CN:** 告诉你的 AI 助手：
-> "我已经安装了 music-creation-engine，从 `~/.your-agent/skills/music-creation/SKILL.md` 加载 skill"
+> "我已经安装了 music-creation-engine，从 `~/.your-agent/skills/music-creation-engine/SKILL.md` 加载 skill"
 
 AI 助手之后会自动识别你聊天中的音乐创作意图，主动问：「需要帮你写成歌吗？」
 
@@ -413,7 +413,7 @@ music-creation-engine/
 # ~/.hermes/tool_manifest.yaml
 music_creation:
   status: active
-  skill: music-creation
+  skill: music-creation-engine
   scripts:
     - scripts/sheet_music_generator.py
     - scripts/demo_renderer.py
@@ -436,8 +436,8 @@ mcp_servers:
 
 ```bash
 # Copy to skills directory / 复制到技能目录
-cp SKILL.md ~/.claude/skills/music-creation/
-cp -r scripts/ ~/.claude/skills/music-creation/scripts/
+cp SKILL.md ~/.claude/skills/music-creation-engine/
+cp -r scripts/ ~/.claude/skills/music-creation-engine/scripts/
 ```
 
 ### Any LLM Chat / 任何 LLM 聊天
