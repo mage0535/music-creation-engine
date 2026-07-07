@@ -25,6 +25,7 @@
 - More tolerant MCP parsing
 - Richer normalized song metadata
 - Reduced dependence on HTTP fallback for usable output
+- Hermes verification now returns `source: meting` with normalized NetEase song data on the primary path
 
 ## Notable technical changes
 

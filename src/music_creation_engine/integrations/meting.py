@@ -24,7 +24,8 @@ class MetingIntegration:
 
     def _guess_package_root(self) -> Path | None:
         cmd_path = self.command
-        if os.path.exists(cmd_path):
+        command_base = os.path.basename(cmd_path).lower()
+        if os.path.exists(cmd_path) and not any(token in command_base for token in ("npx", "npm")):
             resolved = Path(cmd_path).resolve()
             for parent in resolved.parents:
                 if (parent / "package.json").exists():
@@ -160,6 +161,12 @@ class MetingIntegration:
 
     def _extract_song_candidates(self, payload: object) -> list[dict[str, object]]:
         if isinstance(payload, str):
+            try:
+                parsed = json.loads(payload)
+            except json.JSONDecodeError:
+                parsed = None
+            if parsed is not None:
+                return self._extract_song_candidates(parsed)
             parsed = self._extract_json_from_text(payload)
             if parsed is not None:
                 return self._extract_song_candidates(parsed)
@@ -578,9 +585,9 @@ class MetingIntegration:
                 return None
 
             attempt_arguments = [
-                {"platform": platform, "keyword": keyword, "type": "song", "limit": 5},
-                {"platform": platform, "query": keyword, "type": "song", "limit": 5},
-                {"platform": platform, "keywords": keyword, "type": "song", "limit": 5},
+                {"platform": platform, "query": keyword, "limit": 5},
+                {"platform": platform, "keyword": keyword, "limit": 5},
+                {"platform": platform, "keywords": keyword, "limit": 5},
             ]
             for index, arguments in enumerate(attempt_arguments, start=3):
                 result_message = self._mcp_call_tool(proc, index, search_tool, arguments, min(5.0, remaining())) or {}
@@ -612,22 +619,31 @@ class MetingIntegration:
         if package_root is None:
             return None
         meting_module = (package_root / "src" / "meting" / "meting.js").as_posix()
-        script = (
-            f"import Meting from '{meting_module}';"
-            f"const client = new Meting({json.dumps(platform)});"
-            f"const result = await client.search({json.dumps(keyword)}, {{ limit: 5, type: 'song' }});"
-            "console.log(JSON.stringify(result));"
-        )
-        result = subprocess.run(
-            [self._guess_node_command(), "--input-type=module", "-e", script],
-            capture_output=True,
-            text=True,
-            timeout=15,
-            check=False,
-        )
-        if result.returncode != 0 or not result.stdout.strip():
-            return None
-        return self._normalize_meting_payload(result.stdout.strip(), platform)
+        search_calls = [
+            f"client.search({{ query: {json.dumps(keyword)}, limit: 5 }})",
+            f"client.search({{ keyword: {json.dumps(keyword)}, limit: 5 }})",
+            f"client.search({json.dumps(keyword)}, {{ limit: 5 }})",
+        ]
+        for call in search_calls:
+            script = (
+                f"import Meting from '{meting_module}';"
+                f"const client = new Meting({json.dumps(platform)});"
+                f"const result = await {call};"
+                "console.log(JSON.stringify(result));"
+            )
+            result = subprocess.run(
+                [self._guess_node_command(), "--input-type=module", "-e", script],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                check=False,
+            )
+            if result.returncode != 0 or not result.stdout.strip():
+                continue
+            normalized = self._normalize_meting_payload(result.stdout.strip(), platform)
+            if normalized and normalized.get("songs"):
+                return normalized
+        return None
 
     def search(self, keyword: str, platform: str = "netease") -> IntegrationResult:
         if self.enabled:

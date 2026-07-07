@@ -162,6 +162,21 @@ def test_meting_integration_uses_node_module_path(monkeypatch):
     assert result.payload["songs"][0]["artist"] == "Artist C"
 
 
+def test_meting_guess_package_root_skips_npx_parent_package(monkeypatch):
+    monkeypatch.setattr("music_creation_engine.integrations.meting.os.path.exists", lambda path: str(path) == "npx")
+    monkeypatch.setattr("music_creation_engine.integrations.meting.os.path.basename", lambda path: "npx")
+    monkeypatch.setattr("pathlib.Path.exists", lambda self: self.as_posix() == "/global/root/@eldment/meting-agent")
+    monkeypatch.setattr(
+        "music_creation_engine.integrations.meting.subprocess.run",
+        lambda *a, **k: subprocess.CompletedProcess(a[0], 0, "/global/root\n", ""),
+    )
+
+    root = MetingIntegration(enabled=True, command="npx")._guess_package_root()
+
+    assert root is not None
+    assert root.as_posix() == "/global/root/@eldment/meting-agent"
+
+
 def test_meting_normalization_supports_alternate_provider_shapes():
     payload = {
         "data": {
@@ -196,3 +211,13 @@ def test_meting_normalization_extracts_json_from_code_fence():
     assert normalized is not None
     assert normalized["songs"][0]["title"] == "Song D"
     assert normalized["songs"][0]["artist"] == "Artist D"
+
+
+def test_meting_normalization_parses_double_encoded_json_string():
+    payload = json.dumps({"result": {"songs": [{"name": "Song E", "id": 5, "artist": "Artist E"}]}})
+
+    normalized = MetingIntegration(enabled=True)._normalize_meting_payload(json.dumps(payload), "netease")
+
+    assert normalized is not None
+    assert normalized["songs"][0]["title"] == "Song E"
+    assert normalized["songs"][0]["artist"] == "Artist E"

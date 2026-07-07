@@ -2527,3 +2527,24 @@ The project now has:
 - stronger Meting-first normalization
 - broader normalized reference metadata
 - lower fallback dependence for successful public reference search
+
+### Hermes follow-up finding and closure
+
+During the Hermes verification pass, the first remaining blocker was not the normalization schema itself but the Meting invocation contract:
+
+- when the node-module path used `search(keyword, { limit: 5, type: 'song' })`, Hermes returned either a parameter-error payload or a double-encoded JSON string
+- when the call switched to object-style arguments such as `search({ query: keyword, limit: 5 })`, Hermes returned usable NetEase song payloads
+
+The implementation was updated to:
+
+- skip treating the `npx` binary's own npm package directory as the Meting package root
+- prefer object-style `query` / `keyword` arguments in both node-module and MCP paths
+- parse double-encoded JSON strings before fallback extraction
+
+After that adjustment, Hermes-side API verification returned:
+
+- `source: meting`
+- `provider: netease`
+- `song_count: 18`
+
+This means the main reference-search path is now genuinely Meting-backed on the Hermes environment, with fallback retained only as backup.
