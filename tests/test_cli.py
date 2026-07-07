@@ -49,20 +49,20 @@ def test_cli_missing_command_prints_help(capsys):
     assert exit_code == 1
 
 
-def test_cli_score_dry_run_when_music21_missing(monkeypatch, capsys):
-    def missing_which(_cmd):
-        return None
+def test_cli_score_missing_dep_returns_error_json(monkeypatch, capsys):
+    def raise_missing(*_args, **_kwargs):
+        from music_creation_engine.models import EngineError, ErrorCode
+        raise EngineError(code=ErrorCode.MISSING_DEPENDENCY, message="mock missing dep")
 
-    monkeypatch.setattr("music_creation_engine.runtime.score_runtime.shutil.which", missing_which)
+    monkeypatch.setattr("music_creation_engine.runtime.score_runtime._load_music21", raise_missing)
 
     exit_code = main(["score", "--lyrics", "hello", "--output", "build/output/song"])
 
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
 
-    assert exit_code == 0
-    assert payload["status"] == "dry-run"
-    assert payload["midi"].endswith("song.mid")
+    assert exit_code == 1
+    assert payload["error"]["code"] == "MISSING_DEPENDENCY"
 
 
 def test_cli_midi_diff_command_prints_changes(capsys):
@@ -73,3 +73,20 @@ def test_cli_midi_diff_command_prints_changes(capsys):
     payload = json.loads(captured.out)
     assert exit_code == 0
     assert payload["added"] == [64]
+
+
+def test_cli_workflow_status_and_manifest(capsys):
+    create = main(["workflow", "full", "--lyrics", "hello", "--output", "build/output/song", "--no-render-demo"])
+    created = json.loads(capsys.readouterr().out)
+    assert create == 0
+    workflow_id = created["workflow_id"]
+
+    status_code = main(["workflow", "status", "--workflow-id", workflow_id])
+    status_payload = json.loads(capsys.readouterr().out)
+    assert status_code == 0
+    assert status_payload["status"] in {"completed", "processing", "cancelled", "failed"}
+
+    manifest_code = main(["artifacts", "manifest", "--workflow-id", workflow_id])
+    manifest_payload = json.loads(capsys.readouterr().out)
+    assert manifest_code == 0
+    assert manifest_payload["workflow_id"] == workflow_id
