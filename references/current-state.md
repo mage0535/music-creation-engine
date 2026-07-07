@@ -19,6 +19,8 @@ It is no longer just a skill bundle.
 - Chinese-first README with English switch page
 - interactive installer confirmations
 - GitHub Release workflow
+- formal changelog and release-notes documentation
+- Meting-first normalized reference search with richer metadata extraction
 
 ## Weak Areas
 
@@ -31,5 +33,5 @@ It is no longer just a skill bundle.
 
 1. deployment consistency and public release hygiene
 2. workflow lifecycle hardening
-3. Meting normalization and MCP-client integration
+3. provider-specific Meting enrichment beyond the normalized common schema
 4. only then deeper external musical capability integration

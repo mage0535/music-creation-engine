@@ -2480,3 +2480,50 @@ The repository is now documented as a public project with:
 
 - Push the documentation and release workflow changes to the GitHub repository.
 - Create the corresponding GitHub tag and release entry once the source changes are synchronized.
+
+---
+
+## 2026-07-07 (Session 21 — Formal Release Notes And Meting Normalization Hardening)
+
+### What was changed
+
+- Reworked `CHANGELOG.md` into a formal release-history format with `Added`, `Changed`, `Improved`, `Fixed`, and `Documentation` sections.
+- Added `references/release-notes-v0.4.0.md` as a stable release-notes artifact for external publishing and teammate discussion.
+- Expanded Meting normalization from a single payload shape to a broader common schema covering:
+  - nested `result.songs`
+  - `data.list`
+  - code-fenced JSON text
+  - structured MCP content
+  - alternate provider keys such as `songname`, `singer`, `albumname`, `interval`, `songmid`
+- Added normalized metadata fields where upstream data exists:
+  - `song_id`
+  - `album_id`
+  - `artist_id`
+  - `duration_ms`
+  - `artwork_url`
+  - `preview_url`
+- Added result de-duplication and richer MCP argument retries to reduce unnecessary fallback to HTTP search.
+- Added optional MCP enrichment through `url` and `pic` tools when available, so Meting-native results can stay useful without dropping immediately to the fallback path.
+
+### Why this matters
+
+This closes two practical quality gaps:
+
+1. `v0.4.0` release communication is now structured enough for public consumption instead of reading like an internal scratch summary.
+2. Reference search is less dependent on the iTunes fallback path because more real Meting/MCP result shapes now normalize successfully into the project schema.
+
+### Verification
+
+- `pytest tests/test_integrations.py`: passed
+- `pytest tests --ignore=tests/live_service_test.py`: passed
+- `python tests/e2e_http_workflow.py`: passed
+
+### Current outcome
+
+The project now has:
+
+- a formal changelog surface for `v0.4.0`
+- a dedicated release-notes artifact
+- stronger Meting-first normalization
+- broader normalized reference metadata
+- lower fallback dependence for successful public reference search

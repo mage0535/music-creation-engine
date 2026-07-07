@@ -7,7 +7,19 @@ from music_creation_engine.integrations.sidecar_midi_composer import MidiCompose
 
 
 def test_meting_integration_parses_subprocess_json(monkeypatch):
-    payload = {"result": {"songs": [{"name": "Song A", "id": 1, "ar": [{"name": "Artist A"}], "al": {"name": "Album A"}}]}}
+    payload = {
+        "result": {
+            "songs": [
+                {
+                    "name": "Song A",
+                    "id": 1,
+                    "dt": 185000,
+                    "ar": [{"name": "Artist A"}],
+                    "al": {"name": "Album A", "picUrl": "https://img.test/a.jpg"},
+                }
+            ]
+        }
+    }
 
     def fake_run(*args, **kwargs):
         return subprocess.CompletedProcess(args=args[0], returncode=0, stdout=json.dumps(payload), stderr="")
@@ -18,6 +30,9 @@ def test_meting_integration_parses_subprocess_json(monkeypatch):
 
     assert result.payload["songs"][0]["title"] == "Song A"
     assert result.payload["songs"][0]["artist"] == "Artist A"
+    assert result.payload["songs"][0]["duration_ms"] == 185000
+    assert result.payload["songs"][0]["artwork_url"] == "https://img.test/a.jpg"
+    assert result.payload["song_count"] == 1
 
 
 def test_midi_composer_sidecar_returns_capability_probe(monkeypatch):
@@ -35,8 +50,38 @@ def test_midi_composer_sidecar_returns_capability_probe(monkeypatch):
 def test_meting_integration_can_parse_mcp_protocol(monkeypatch):
     messages = [
         {"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2025-03-26"}},
-        {"jsonrpc": "2.0", "id": 2, "result": {"tools": [{"name": "search"}]}},
-        {"jsonrpc": "2.0", "id": 3, "result": {"content": [{"type": "text", "text": json.dumps({"result": {"songs": [{"name": "Song B", "id": 2, "ar": [{"name": "Artist B"}], "al": {"name": "Album B"}}]}})}]}}
+        {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "result": {"tools": [{"name": "search"}, {"name": "url"}, {"name": "pic"}]},
+        },
+        {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "result": {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": json.dumps(
+                            {
+                                "result": {
+                                    "songs": [
+                                        {
+                                            "name": "Song B",
+                                            "id": 2,
+                                            "ar": [{"name": "Artist B"}],
+                                            "al": {"name": "Album B"},
+                                        }
+                                    ]
+                                }
+                            }
+                        ),
+                    }
+                ]
+            },
+        },
+        {"jsonrpc": "2.0", "id": 100, "result": {"content": [{"type": "text", "text": "https://audio.test/b.mp3"}]}},
+        {"jsonrpc": "2.0", "id": 101, "result": {"content": [{"type": "text", "text": "https://img.test/b.jpg"}]}},
     ]
     framed = "".join(
         f"Content-Length: {len(json.dumps(msg).encode())}\r\n\r\n{json.dumps(msg)}"
@@ -59,6 +104,8 @@ def test_meting_integration_can_parse_mcp_protocol(monkeypatch):
 
     assert result.payload["songs"][0]["title"] == "Song B"
     assert result.payload["songs"][0]["artist"] == "Artist B"
+    assert result.payload["songs"][0]["preview_url"] == "https://audio.test/b.mp3"
+    assert result.payload["songs"][0]["artwork_url"] == "https://img.test/b.jpg"
 
 
 def test_meting_integration_falls_back_to_http_search(monkeypatch):
@@ -78,6 +125,9 @@ def test_meting_integration_falls_back_to_http_search(monkeypatch):
                             "artistName": "John Coltrane",
                             "collectionName": "Blue Train",
                             "previewUrl": "https://example.test/preview.mp3",
+                            "artworkUrl100": "https://example.test/cover.jpg",
+                            "trackTimeMillis": 64000,
+                            "trackId": 99,
                         }
                     ]
                 }
@@ -91,10 +141,12 @@ def test_meting_integration_falls_back_to_http_search(monkeypatch):
 
     assert result.payload["provider"] == "itunes"
     assert result.payload["songs"][0]["title"] == "Blue Train"
+    assert result.payload["songs"][0]["duration_ms"] == 64000
+    assert result.payload["songs"][0]["artwork_url"] == "https://example.test/cover.jpg"
 
 
 def test_meting_integration_uses_node_module_path(monkeypatch):
-    monkeypatch.setattr("music_creation_engine.integrations.meting.MetingIntegration._guess_package_root", lambda self: __import__('pathlib').Path('/fake/pkg'))
+    monkeypatch.setattr("music_creation_engine.integrations.meting.MetingIntegration._guess_package_root", lambda self: __import__("pathlib").Path("/fake/pkg"))
     monkeypatch.setattr("music_creation_engine.integrations.meting.MetingIntegration._guess_node_command", lambda self: "node")
 
     payload = {"result": {"songs": [{"name": "Song C", "id": 3, "ar": [{"name": "Artist C"}], "al": {"name": "Album C"}}]}}
@@ -108,3 +160,39 @@ def test_meting_integration_uses_node_module_path(monkeypatch):
 
     assert result.payload["songs"][0]["title"] == "Song C"
     assert result.payload["songs"][0]["artist"] == "Artist C"
+
+
+def test_meting_normalization_supports_alternate_provider_shapes():
+    payload = {
+        "data": {
+            "list": [
+                {
+                    "songname": "Alt Song",
+                    "songmid": "abc123",
+                    "singer": [{"name": "Alt Artist"}],
+                    "albumname": "Alt Album",
+                    "interval": 212,
+                }
+            ]
+        }
+    }
+
+    normalized = MetingIntegration(enabled=True)._normalize_meting_payload(payload, "tencent")
+
+    assert normalized is not None
+    assert normalized["songs"][0]["title"] == "Alt Song"
+    assert normalized["songs"][0]["artist"] == "Alt Artist"
+    assert normalized["songs"][0]["duration_ms"] == 212000
+    assert normalized["songs"][0]["song_id"] == "abc123"
+
+
+def test_meting_normalization_extracts_json_from_code_fence():
+    fenced = """```json
+{"result":{"songs":[{"name":"Song D","id":4,"artist":"Artist D","album":"Album D"}]}}
+```"""
+
+    normalized = MetingIntegration(enabled=True)._normalize_meting_payload(fenced, "netease")
+
+    assert normalized is not None
+    assert normalized["songs"][0]["title"] == "Song D"
+    assert normalized["songs"][0]["artist"] == "Artist D"
