@@ -1,0 +1,28 @@
+[
+  {
+    "stage": "score",
+    "payload": {
+      "status": "ok",
+      "parts": [
+        "piano",
+        "vocals"
+      ],
+      "sections": [
+        {
+          "name": "song",
+          "bars": 1,
+          "key": "C"
+        }
+      ],
+      "request_echo": {
+        "chord_progression": [],
+        "sections": [],
+        "melody": {},
+        "instrument_roles": {}
+      },
+      "midi": "build\\workflows\\b586c4cfecd5\\artifacts\\composition.mid",
+      "musicxml": "build\\workflows\\b586c4cfecd5\\artifacts\\composition.musicxml",
+      "lilypond_error": "Cannot find a copy of Lilypond installed on your system. Please be sure it is installed. And that your environment.UserSettings()['lilypondPath'] is set to find it."
+    }
+  }
+]
