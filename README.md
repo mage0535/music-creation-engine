@@ -1,140 +1,176 @@
 # Music Creation Engine
 
-`music-creation-engine` is a deployable music workflow project for AI agents.
+`music-creation-engine` is a deployable music composition execution engine for AI agents such as Hermes, Codex, and OpenClaw.
 
-It now supports:
+It accepts structured composition plans from an Agent and produces:
 
-- standalone CLI commands
-- FastAPI HTTP service
-- Hermes, Codex, and OpenClaw adapter assets
-- default public integration with `Meting-Agent`
-- optional advanced integrations for memory and research tooling
-- optional sidecar integrations for `midi-composer-mcp` and `reaper-mcp`
-- workflow manifests and checkpoint files
-- native MIDI diff / inspect / query helpers
-- basic piano playability validation
+- MIDI
+- MusicXML
+- LilyPond
+- PDF sheet music
+- WAV
+- MP3
+- workflow manifests
+- workflow checkpoints
 
-## Project Layout
+## Quick Start
 
-```text
-config/                      Runtime defaults
-src/music_creation_engine/   Package source
-scripts/                     Backward-compatible script entrypoints
-adapters/                    Hermes / Codex / OpenClaw adapter assets
-examples/                    Example agent workflows
-references/                  Deployment and handoff docs
-tests/                       Verification coverage
+```bash
+# Docker (recommended)
+docker compose up
+
+# Manual
+python3 -m pip install -e .
+sudo apt-get install -y lilypond fluidsynth fluid-soundfont-gm ffmpeg
+uvicorn music_creation_engine.api.app:create_app --factory --host 0.0.0.0 --port 8000
 ```
 
-## Runtime Modes
+## HTTP API
 
-### CLI
+### Health & Capabilities
+
+- `GET /health`
+- `GET /capabilities`
+
+### Composition
+
+- `POST /v1/score`
+- `POST /v1/render`
+- `POST /v1/workflows/full`
+- `POST /v1/workflows/full?async=true`
+- `GET /v1/workflows/{workflow_id}/status`
+- `POST /v1/workflows/{workflow_id}/revise`
+- `POST /v1/workflows/{workflow_id}/retry`
+- `POST /v1/workflows/{workflow_id}/cancel`
+- `DELETE /v1/workflows/{workflow_id}`
+- `POST /v1/workflows/cleanup`
+- `GET /v1/workflows`
+
+### References
+
+- `POST /v1/references/search`
+
+### MIDI Tools
+
+- `POST /v1/midi/diff`
+- `POST /v1/midi/diff-files`
+- `POST /v1/midi/inspect`
+- `POST /v1/midi/query`
+
+### Validation
+
+- `POST /v1/playability`
+
+### Artifacts
+
+- `GET /v1/artifacts/{workflow_id}`
+- `GET /v1/artifacts/{workflow_id}/files/{filename}`
+- `GET /v1/workflows/{workflow_id}/checkpoints`
+
+## CLI
 
 ```bash
 music-creation-engine health
 music-creation-engine capabilities
-music-creation-engine references search --keyword "Jay Chou"
-music-creation-engine score --lyrics "hello" --output build/output/song --chord-progression "Am,F,C,G"
-music-creation-engine workflow full --lyrics "hello" --output build/output/song
-music-creation-engine midi diff --left-notes "60,62" --right-notes "60,64"
+
+music-creation-engine score \
+  --lyrics "Verse text" \
+  --output /tmp/song \
+  --key Am \
+  --bpm 72 \
+  --instruments piano,vocals,bass \
+  --chord-progression "Am,F,C,G" \
+  --sections '[{"name":"intro","bars":4},{"name":"verse","bars":8}]' \
+  --melody '{"vocals":["A4","B4","C5","A4"]}' \
+  --instrument-roles '{"piano":"chord","bass":"bass","vocals":"melody"}'
+
+music-creation-engine render --midi /tmp/song.mid --output /tmp/song
+
+music-creation-engine workflow full --lyrics "..." --output /tmp/song --no-render-demo
+music-creation-engine workflow list
+music-creation-engine workflow status --workflow-id abc123
+music-creation-engine workflow revise --workflow-id abc123 --bpm 84
+music-creation-engine workflow retry --workflow-id abc123
+music-creation-engine workflow cancel --workflow-id abc123
+music-creation-engine workflow delete --workflow-id abc123
+music-creation-engine workflow cleanup --retention-days 30
+
+music-creation-engine midi diff --left-notes "60,62,64" --right-notes "60,64,65"
+music-creation-engine midi diff-files --left-path a.mid --right-path b.mid
+music-creation-engine midi inspect --midi-path /tmp/song.mid
+music-creation-engine midi query --notes "60,62,64,65,67" --min-pitch 64
+
+music-creation-engine playability --instrument piano --notes "48,60,72,84"
+music-creation-engine references search --keyword "Jay Chou" --platform netease
+music-creation-engine adapters install
 ```
 
-### HTTP API
+## Structured Score Parameters
+
+Recommended fields for high-quality output:
+
+- `chord_progression`
+- `sections`
+- `melody`
+- `instrument_roles`
+
+Examples:
+
+- `melody: {"vocals":["A4","B4","C5"]}`
+- `melody: {"vocals":[69,71,72]}`
+- `instrument_roles: {"piano":"chord","bass":"bass","vocals":"melody"}`
+
+Valid instruments:
+
+- `piano`
+- `vocals`
+- `guitar`
+- `bass`
+- `drums`
+- `strings`
+- `flute`
+- `sax`
+- `trumpet`
+- `synth`
+
+Valid roles:
+
+- `chord`
+- `melody`
+- `bass`
+- `pad`
+- `rhythm`
+
+## Project Layout
+
+```text
+config/defaults.yaml             Runtime configuration
+src/music_creation_engine/       Package source
+scripts/                         Compatibility entrypoints
+adapters/                        Hermes / Codex / OpenClaw adapter files
+examples/                        Example workflows
+references/current-state.md      Short current-state snapshot
+references/continuous-development.md
+tests/                           Unit, API, and end-to-end tests
+Dockerfile
+docker-compose.yml
+```
+
+## Deployment Notes
+
+- Docker / compose is the preferred deployment path.
+- `Meting-Agent` is the default public reference integration, but still needs stronger normalization and MCP-client hardening.
+- `midi-composer-mcp` and `reaper-mcp` are optional sidecars, not default runtime dependencies.
+
+## Verification
 
 ```bash
-uvicorn music_creation_engine.api.app:create_app --factory --host 0.0.0.0 --port 8000
+python -m pytest -q
+python tests/e2e_http_workflow.py
 ```
-
-Available endpoints:
-
-- `GET /health`
-- `GET /capabilities`
-- `POST /v1/score`
-- `POST /v1/render`
-- `POST /v1/workflows/full`
-- `POST /v1/references/search`
-- `POST /v1/midi/diff`
-- `POST /v1/midi/inspect`
-- `POST /v1/midi/query`
-- `POST /v1/playability`
-- `GET /v1/artifacts/{workflow_id}`
-- `GET /v1/workflows/{workflow_id}/checkpoints`
-
-## Installation
-
-### Fast path
-
-```bash
-chmod +x install.sh
-./install.sh
-```
-
-What `install.sh` does:
-
-- installs the Python package in editable mode when possible
-- installs public dependencies and public integration tooling when possible
-- copies the project bundle into detected agent directories
-
-### Manual setup
-
-```bash
-python3 -m pip install -e .
-sudo apt-get install -y lilypond fluidsynth fluid-soundfont-gm ffmpeg
-npm install -g @eldment/meting-agent
-```
-
-## Public vs Advanced Integrations
-
-### Default-enabled public integration
-
-- `Meting-Agent`
-  Used for reference song and lyric search.
-
-- `midi-composer-mcp`
-  Optional sidecar for deterministic composition theory tools. Recommended as a bridge while we build the highest-value native MIDI endpoints.
-
-### Optional advanced integrations
-
-- memory integration
-- embedding-backed recall
-- browser/research integration
-- `reaper-mcp` for DAW-backed advanced rendering and mixing
-
-These advanced integrations are intentionally disabled by default and should only be enabled by deployment-specific configuration.
 
 ## Agent Adapters
 
 - Hermes: [adapters/hermes/SKILL.md](adapters/hermes/SKILL.md)
 - Codex: [adapters/codex/AGENTS.md](adapters/codex/AGENTS.md)
 - OpenClaw: [adapters/openclaw/README.md](adapters/openclaw/README.md)
-
-## Example Workflows
-
-- [examples/hermes-workflow.md](examples/hermes-workflow.md)
-- [examples/codex-workflow.md](examples/codex-workflow.md)
-- [examples/openclaw-workflow.md](examples/openclaw-workflow.md)
-
-## Verification
-
-```bash
-python -m pytest -q
-```
-
-The test suite validates:
-
-- config loading
-- capability detection
-- service orchestration
-- CLI behavior
-- API routes
-- adapter target resolution
-- expected project layout
-- workflow manifest persistence
-- sidecar integration wrappers
-- native MIDI diff and playability utilities
-
-## Notes
-
-- The old `scripts/` commands still exist, but they now act as compatibility entrypoints into the package.
-- Do not hardcode server paths, secrets, or local machine paths into this repository.
-- The core architecture remains: Agent decides, Engine executes deterministically.
