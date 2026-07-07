@@ -26,6 +26,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--style", default="pop")
     parser.add_argument("--output", required=True)
     parser.add_argument("--mode", default="all")
+    parser.add_argument("--chord-progression", default="")
+    parser.add_argument("--sections", default="")
+    parser.add_argument("--melody", default="")
+    parser.add_argument("--instrument-roles", default="")
     parser.add_argument("--json", action="store_true")
     return parser.parse_args()
 
@@ -48,6 +52,10 @@ def main() -> int:
         instruments=args.instruments,
         style=args.style,
         mode=args.mode,
+        chord_progression=[item for item in args.chord_progression.split(",") if item] if args.chord_progression else [],
+        sections=json.loads(args.sections) if args.sections else [],
+        melody=json.loads(args.melody) if args.melody else {},
+        instrument_roles=json.loads(args.instrument_roles) if args.instrument_roles else {},
     )
     result = ScoreService().generate(request)
     payload = json.dumps(result, ensure_ascii=False)
