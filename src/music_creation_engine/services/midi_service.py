@@ -4,7 +4,7 @@ import logging
 from collections import Counter
 from pathlib import Path
 
-from music_creation_engine.models import MidiDiffRequest, MidiInspectRequest, MidiQueryRequest
+from music_creation_engine.models import MidiDiffRequest, MidiInspectRequest, MidiQueryRequest, MidiTransformRequest
 
 logger = logging.getLogger(__name__)
 
@@ -67,3 +67,22 @@ class MidiService:
         if request.max_pitch is not None:
             notes = [note for note in notes if note <= request.max_pitch]
         return {"notes": notes, "count": len(notes)}
+
+    def transform(self, request: MidiTransformRequest) -> dict[str, object]:
+        notes = list(request.notes)
+        op = request.operation
+        if op == "transpose":
+            return {"notes": [note + request.semitones for note in notes], "operation": op}
+        if op == "replace_phrase":
+            start = max(0, request.start)
+            end = max(start, request.end)
+            new_notes = notes[:start] + list(request.replacement) + notes[end:]
+            return {"notes": new_notes, "operation": op}
+        if op == "reverse":
+            return {"notes": list(reversed(notes)), "operation": op}
+        if op == "invert":
+            if not notes:
+                return {"notes": [], "operation": op}
+            pivot = notes[0]
+            return {"notes": [pivot - (note - pivot) for note in notes], "operation": op}
+        return {"notes": notes, "operation": "noop"}
