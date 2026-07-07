@@ -7,7 +7,7 @@ from music_creation_engine.integrations.sidecar_midi_composer import MidiCompose
 
 
 def test_meting_integration_parses_subprocess_json(monkeypatch):
-    payload = {"songs": [{"title": "Song A", "artist": "Artist A"}]}
+    payload = {"result": {"songs": [{"name": "Song A", "id": 1, "ar": [{"name": "Artist A"}], "al": {"name": "Album A"}}]}}
 
     def fake_run(*args, **kwargs):
         return subprocess.CompletedProcess(args=args[0], returncode=0, stdout=json.dumps(payload), stderr="")
@@ -17,6 +17,7 @@ def test_meting_integration_parses_subprocess_json(monkeypatch):
     result = MetingIntegration(enabled=True, command="npx").search("test", "netease")
 
     assert result.payload["songs"][0]["title"] == "Song A"
+    assert result.payload["songs"][0]["artist"] == "Artist A"
 
 
 def test_midi_composer_sidecar_returns_capability_probe(monkeypatch):
@@ -35,7 +36,7 @@ def test_meting_integration_can_parse_mcp_protocol(monkeypatch):
     messages = [
         {"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2025-03-26"}},
         {"jsonrpc": "2.0", "id": 2, "result": {"tools": [{"name": "search"}]}},
-        {"jsonrpc": "2.0", "id": 3, "result": {"content": [{"type": "text", "text": json.dumps({"songs": [{"title": "Song B"}]})}]}}
+        {"jsonrpc": "2.0", "id": 3, "result": {"content": [{"type": "text", "text": json.dumps({"result": {"songs": [{"name": "Song B", "id": 2, "ar": [{"name": "Artist B"}], "al": {"name": "Album B"}}]}})}]}}
     ]
     framed = "".join(
         f"Content-Length: {len(json.dumps(msg).encode())}\r\n\r\n{json.dumps(msg)}"
@@ -57,6 +58,7 @@ def test_meting_integration_can_parse_mcp_protocol(monkeypatch):
     result = MetingIntegration(enabled=True, command="npx").search("test", "netease")
 
     assert result.payload["songs"][0]["title"] == "Song B"
+    assert result.payload["songs"][0]["artist"] == "Artist B"
 
 
 def test_meting_integration_falls_back_to_http_search(monkeypatch):
@@ -89,3 +91,20 @@ def test_meting_integration_falls_back_to_http_search(monkeypatch):
 
     assert result.payload["provider"] == "itunes"
     assert result.payload["songs"][0]["title"] == "Blue Train"
+
+
+def test_meting_integration_uses_node_module_path(monkeypatch):
+    monkeypatch.setattr("music_creation_engine.integrations.meting.MetingIntegration._guess_package_root", lambda self: __import__('pathlib').Path('/fake/pkg'))
+    monkeypatch.setattr("music_creation_engine.integrations.meting.MetingIntegration._guess_node_command", lambda self: "node")
+
+    payload = {"result": {"songs": [{"name": "Song C", "id": 3, "ar": [{"name": "Artist C"}], "al": {"name": "Album C"}}]}}
+
+    def fake_run(*args, **kwargs):
+        return subprocess.CompletedProcess(args=args[0], returncode=0, stdout=json.dumps(payload), stderr="")
+
+    monkeypatch.setattr("music_creation_engine.integrations.meting.subprocess.run", fake_run)
+
+    result = MetingIntegration(enabled=True, command="npx").search("song c", "netease")
+
+    assert result.payload["songs"][0]["title"] == "Song C"
+    assert result.payload["songs"][0]["artist"] == "Artist C"
