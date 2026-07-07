@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import time
 from dataclasses import dataclass
 
 from music_creation_engine.integrations.base import IntegrationResult
@@ -26,14 +27,22 @@ class MetingIntegration:
         proc.stdin.write(payload)
         proc.stdin.flush()
 
-    def _read_mcp_message(self, proc: subprocess.Popen) -> dict[str, object] | None:
+    def _read_mcp_message(self, proc: subprocess.Popen, timeout: float = 5.0) -> dict[str, object] | None:
         assert proc.stdout is not None
+        try:
+            os.set_blocking(proc.stdout.fileno(), False)
+        except Exception:
+            pass
         header = ""
-        while "\r\n\r\n" not in header:
+        deadline = time.monotonic() + timeout
+        while "\r\n\r\n" not in header and time.monotonic() < deadline:
             char = proc.stdout.read(1)
             if not char:
-                return None
+                time.sleep(0.05)
+                continue
             header += char
+        if "\r\n\r\n" not in header:
+            return None
         head, body_prefix = header.split("\r\n\r\n", 1)
         length = 0
         for line in head.split("\r\n"):
@@ -43,11 +52,14 @@ class MetingIntegration:
         if length <= 0:
             return None
         body = body_prefix
-        while len(body.encode()) < length:
+        while len(body.encode()) < length and time.monotonic() < deadline:
             char = proc.stdout.read(1)
             if not char:
-                break
+                time.sleep(0.05)
+                continue
             body += char
+        if len(body.encode()) < length:
+            return None
         try:
             return json.loads(body[:length])
         except json.JSONDecodeError:
