@@ -9,6 +9,7 @@ from pathlib import Path
 from music_creation_engine.adapters.install import install_adapter_files
 from music_creation_engine.capabilities import detect_capabilities
 from music_creation_engine.config import load_settings
+from music_creation_engine.integrations.meting import MetingIntegration
 from music_creation_engine.models import (
     ErrorCode,
     EngineError,
@@ -21,6 +22,7 @@ from music_creation_engine.models import (
     ScoreRequest,
     WorkflowRequest,
 )
+from music_creation_engine.services.artifact_service import ArtifactService
 from music_creation_engine.services.midi_service import MidiService
 from music_creation_engine.services.playability_service import PlayabilityService
 from music_creation_engine.services.reference_service import ReferenceService
@@ -88,9 +90,11 @@ def cmd_render(args: argparse.Namespace) -> int:
 
 
 def cmd_workflow_full(args: argparse.Namespace) -> int:
+    settings = load_settings()
     workflow_service = WorkflowService(
         score_service=ScoreService(),
         render_service=RenderService(),
+        artifact_service=ArtifactService(settings.project.workflow_dir),
     )
     result = workflow_service.run_full(
         WorkflowRequest(
@@ -111,7 +115,10 @@ def cmd_workflow_full(args: argparse.Namespace) -> int:
 
 
 def cmd_references_search(args: argparse.Namespace) -> int:
-    service = ReferenceService()
+    settings = load_settings()
+    service = ReferenceService(
+        meting=MetingIntegration(enabled=settings.integrations.meting_enabled, command=settings.tools.meting_command)
+    )
     result = service.search(
         ReferenceSearchRequest(keyword=args.keyword, platform=args.platform)
     )
