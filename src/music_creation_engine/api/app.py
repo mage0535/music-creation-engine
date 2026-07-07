@@ -18,6 +18,7 @@ from music_creation_engine.models import (
     MidiDiffRequest,
     MidiInspectRequest,
     MidiQueryRequest,
+    MidiTransformRequest,
     PlayabilityRequest,
     ReferenceSearchRequest,
     RenderRequest,
@@ -97,6 +98,15 @@ class MidiQueryBody(BaseModel):
 class MidiDiffFilesBody(BaseModel):
     left_path: str
     right_path: str
+
+
+class MidiTransformBody(BaseModel):
+    notes: list[int]
+    operation: str
+    semitones: int = 0
+    start: int = 0
+    end: int = 0
+    replacement: list[int] = []
 
 
 class PlayabilityBody(BaseModel):
@@ -362,6 +372,19 @@ def create_app() -> FastAPI:
     @app.post("/v1/midi/diff-files")
     def midi_diff_files(body: MidiDiffFilesBody) -> dict[str, object]:
         return midi_service.diff_files(left_path=body.left_path, right_path=body.right_path)
+
+    @app.post("/v1/midi/transform")
+    def midi_transform(body: MidiTransformBody) -> dict[str, object]:
+        return midi_service.transform(
+            MidiTransformRequest(
+                notes=body.notes,
+                operation=body.operation,
+                semitones=body.semitones,
+                start=body.start,
+                end=body.end,
+                replacement=body.replacement,
+            )
+        )
 
     @app.post("/v1/playability")
     def playability(body: PlayabilityBody) -> dict[str, object]:
