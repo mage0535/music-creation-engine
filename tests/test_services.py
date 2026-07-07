@@ -2,6 +2,7 @@ from pathlib import Path
 
 from music_creation_engine.models import (
     MidiDiffRequest,
+    MidiTransformRequest,
     PlayabilityRequest,
     RenderRequest,
     ScoreRequest,
@@ -91,6 +92,36 @@ def test_midi_service_can_diff_simple_note_lists():
     assert result["removed"] == [62]
 
 
+def test_midi_service_can_transpose_notes():
+    service = MidiService()
+
+    result = service.transform(
+        MidiTransformRequest(
+            notes=[60, 62, 64],
+            operation="transpose",
+            semitones=2,
+        )
+    )
+
+    assert result["notes"] == [62, 64, 66]
+
+
+def test_midi_service_can_replace_phrase():
+    service = MidiService()
+
+    result = service.transform(
+        MidiTransformRequest(
+            notes=[60, 62, 64, 65, 67],
+            operation="replace_phrase",
+            start=1,
+            end=3,
+            replacement=[72, 74],
+        )
+    )
+
+    assert result["notes"] == [60, 72, 74, 65, 67]
+
+
 def test_playability_service_flags_large_piano_span():
     service = PlayabilityService()
 
@@ -103,3 +134,17 @@ def test_playability_service_flags_large_piano_span():
 
     assert result["playable"] is False
     assert result["warnings"]
+
+
+def test_playability_service_checks_vocal_range():
+    service = PlayabilityService()
+
+    result = service.evaluate(
+        PlayabilityRequest(
+            instrument="vocals",
+            notes=[40, 60, 90],
+        )
+    )
+
+    assert result["playable"] is False
+    assert any("range" in warning.lower() for warning in result["warnings"])
