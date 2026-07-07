@@ -36,6 +36,20 @@ def detect_capabilities(settings: Settings) -> CapabilityReport:
             available=tools["npx"].available,
             reason="" if tools["npx"].available else "npx not found",
         ),
+        "midi_composer": IntegrationCapability(
+            enabled=settings.integrations.midi_composer_enabled,
+            available=shutil.which(settings.tools.midi_composer_command) is not None,
+            reason=""
+            if shutil.which(settings.tools.midi_composer_command) is not None
+            else "midi-composer command not found",
+        ),
+        "reaper": IntegrationCapability(
+            enabled=settings.integrations.reaper_enabled,
+            available=shutil.which(settings.tools.reaper_command) is not None,
+            reason=""
+            if shutil.which(settings.tools.reaper_command) is not None
+            else "reaper command not found",
+        ),
         "memory": IntegrationCapability(
             enabled=settings.integrations.advanced_enabled and settings.integrations.memory_enabled,
             available=settings.integrations.advanced_enabled,
