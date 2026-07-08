@@ -46,7 +46,7 @@
 ### Docker (Recommended)
 
 ```bash
-git clone https://github.com/YOUR_REPO/music-creation-engine.git
+git clone https://github.com/mage0535/music-creation-engine.git
 cd music-creation-engine
 docker compose up
 # Server at http://localhost:8000
