@@ -1,218 +1,378 @@
-# Music Creation Engine
+# 🎵 Music Creation Engine
 
-中文 | [English](README.en.md)
+[English](README.en.md) | [中文版](README.md)
 
-`music-creation-engine` 是一个面向 AI 智能体的可部署音乐执行引擎。它不负责替代智能体做创作判断，而是把智能体已经决定好的结构化音乐方案，稳定地落成可验证、可交付的产物。
+**AI Agent 原生音乐创作执行引擎 — 将 LLM 作曲决策转化为出版级乐谱 + 音频成品**
 
-当前版本：`v0.4.0`
+> **两层关系**
+>
+> | 项目 | 定位 | 功能 |
+> |------|------|------|
+> | **Hermes / Codex / OpenClaw** | Agent 底座 | 对话管理、意图识别、LLM 推理 |
+> | **music-creation-engine** | 能力扩展层 | 将 Agent 结构化参数 → MIDI/PDF/MP3 成品 |
+>
+> **Agent 负责"想"（LLM 作曲决策），Engine 负责"做"（确定性的乐谱生成 + 音频渲染）。**
 
-## 项目思路
+---
 
-这个项目解决的核心问题不是“让模型随便生成一段音乐”，而是把“从用户需求到最终成品”的链路做成真实可执行的工程流程。
+## 适用场景
 
-它重点解决这些问题：
+- ✅ 你想让 Agent 不仅"聊出"一首歌，而是**真实生成 MIDI、PDF 乐谱、MP3 试听**
+- ✅ 你希望 Agent 能用**和弦走向、段落结构、音名旋律**等结构化参数精确控制作曲结果
+- ✅ 你需要在 Agent 工作流中跟踪每次生成的历史、**修订迭代、重试、清理**
+- ✅ 你希望一套 API + CLI 统一对接 Hermes / Codex / OpenClaw 三种 Agent
 
-- 智能体能说清楚，但不能稳定落地成 MIDI、PDF、WAV、MP3。
-- 生成结果没有统一工作流、没有清晰检查点、没有回滚和重试机制。
-- 参考检索、MIDI 编辑、演奏可行性检查分散在不同工具里，难以形成闭环。
-- Hermes、Codex、OpenClaw 等不同智能体需要同一套可复用的入口和协议。
+---
 
-## 目标与方向
+## 项目概览
 
-项目目标是把音乐创作流程做成“Agent 决策，Engine 执行”的分层系统。
+| 特性 | 说明 |
+|------|------|
+| 🎼 **结构化作曲** | 和弦走向、段落结构、音名旋律、乐器分工 — Agent 的 LLM 怎么想，Engine 怎么做 |
+| 🎹 **音名输入** | `["A4","B4","C5"]` 或 `[69,71,72]` 双格式 |
+| 📄 **多格式输出** | MIDI / MusicXML / LilyPond 源码 / 出版级 PDF |
+| 🔊 **音频渲染** | FluidSynth → WAV → FFmpeg → MP3 |
+| 🔄 **异步工作流** | `?async=true` → 立即返回，后台生成，轮询状态 |
+| 📦 **产物管理** | 自动 manifest + checkpoints + file inventory |
+| 🎯 **MIDI 工具** | diff / inspect / query / transform |
+| 🖖 **可演奏性检查** | 多乐器音域校验 + 跨度/密度/手位分析 |
+| 🔍 **参考搜索** | Meting-Agent → MCP stdio → iTunes HTTP 三级回退 |
+| 🐳 **容器化** | Dockerfile + docker-compose.yml |
 
-### 目标
+---
 
-- 接收结构化作曲计划并生成可验证产物。
-- 提供 CLI、HTTP API、Workflow 三种入口。
-- 让 Hermes、Codex、OpenClaw 使用同一套执行面。
-- 保留检查点、修订、重试、清理、删除等工作流能力。
-- 支持公开发布与 GitHub Releases 自动化。
+## 快速开始
 
-### 当前方向
-
-1. 稳定的结构化作曲与渲染。
-2. 更强的工作流生命周期管理。
-3. 更可靠的公共参考检索。
-4. 更强的原生 MIDI 编辑与可演奏性校验。
-5. 可选的外部 sidecar 集成，而不是把所有能力硬塞进核心。
-
-## 工作流
-
-推荐的真实执行顺序如下：
-
-1. `health` 和 `capabilities` 先确认服务可用。
-2. 智能体先输出结构化方案：`key`、`bpm`、`style`、`chord_progression`、`sections`、`melody`、`instrument_roles`。
-3. `score` 生成 MIDI、MusicXML、LilyPond 等基础乐谱产物。
-4. `render` 生成 WAV / MP3 / PDF。
-5. `workflow full` 一次性执行完整闭环。
-6. `workflow status`、`workflow revise`、`workflow retry`、`workflow cancel`、`workflow delete`、`workflow cleanup` 管理生命周期。
-7. `midi inspect`、`midi diff`、`midi query`、`midi transform` 做二次编辑与验证。
-8. `playability` 检查实际可演奏性。
-9. `references search` 提供公开参考检索。
-
-## 集成工具
-
-### 核心工具
-
-- `music21`
-- `LilyPond`
-- `FluidSynth`
-- `ffmpeg`
-- `PyYAML`
-
-### 参考与扩展
-
-- `@eldment/meting-agent`
-- `midi-composer-mcp`
-- `reaper-mcp`
-
-### 智能体适配
-
-- Hermes
-- Codex
-- OpenClaw
-
-## 具体操作方法
-
-### 1. 先看可用能力
+### Docker（推荐）
 
 ```bash
-music-creation-engine health
-music-creation-engine capabilities
+git clone https://github.com/YOUR_REPO/music-creation-engine.git
+cd music-creation-engine
+docker compose up
+# 服务启动在 http://localhost:8000
 ```
 
-### 2. 生成结构化乐谱
+### 手动安装
 
 ```bash
+# 1. 克隆
+git clone https://github.com/YOUR_REPO/music-creation-engine.git && cd music-creation-engine
+
+# 2. 安装 Python 包
+python3 -m pip install -e .
+
+# 3. 安装系统依赖
+sudo apt-get install -y lilypond fluidsynth fluid-soundfont-gm ffmpeg
+
+# 4.（可选）安装参考搜索
+npm install -g @eldment/meting-agent
+
+# 5. 启动服务
+uvicorn music_creation_engine.api.app:create_app --factory --host 0.0.0.0 --port 8000
+```
+
+### 验证
+
+```bash
+curl http://localhost:8000/health
+# {"status":"ok"}
+
+curl -X POST http://localhost:8000/v1/score \
+  -H "Content-Type: application/json" \
+  -d '{"lyrics":"Hello","output_base":"/tmp/song","key":"Am","bpm":72,"instruments":"piano,vocals","chord_progression":["Am","F","C","G"],"melody":{"vocals":["A4","B4","C5","A4"]}}'
+```
+
+---
+
+## 目录
+
+- [快速开始](#快速开始)
+- [架构](#架构)
+- [功能模块](#功能模块)
+- [API 参考](#api-参考)
+- [CLI 参考](#cli-参考)
+- [参数说明](#参数说明)
+- [配置](#配置)
+- [项目结构](#项目结构)
+- [Agent 适配器](#agent-适配器)
+- [资源占用](#资源占用-预估)
+- [致谢](#致谢)
+- [许可证](#许可证)
+
+---
+
+## 架构
+
+```
+用户 → Agent (Hermes / Codex / OpenClaw)       ← 决策层
+         │ LLM 规划: key, bpm, chords, sections, melody, roles
+         ▼
+music-creation-engine                            ← 执行层
+  │
+  ├── 校验层   (bpm 20-300 / key 白名单 / inst 白名单 / chord 正则)
+  ├── music21  → MIDI / MusicXML / LilyPond / PDF
+  ├── fluidsynth → WAV → ffmpeg → MP3
+  ├── ArtifactService → manifest + checkpoints + file inventory
+  ├── FileResponse    → 文件下载 (mid/pdf/mp3/wav/xml/ly)
+  ├── Workflow        → async / status / revise / retry / cancel / delete / cleanup
+  ├── MIDI tools      → diff / diff-files / inspect / query / transform
+  └── Reference       → Meting CLI → MCP stdio → iTunes HTTP
+```
+
+**边界原则：** Engine 不调用 LLM。所有 LLM 推理在 Agent 层完成。这使得 Engine 可以通过 65 个确定性测试覆盖。
+
+---
+
+## 功能模块
+
+### 1. 乐谱生成 (`runtime/score_runtime.py`)
+
+music21 引擎驱动，接受结构化作曲参数：
+
+```python
+# 支持音名输入（LLM 友好）
+melody = {"vocals": ["A4", "B4", "C5", "A4"]}
+# 也支持 MIDI 数字（向后兼容）
+melody = {"vocals": [69, 71, 72, 69]}
+```
+
+每个段落可独立设置调性、乐器、小节数：
+```json
+"sections": [
+  {"name": "intro",  "bars": 4, "key": "Am"},
+  {"name": "verse",  "bars": 8, "key": "Am"},
+  {"name": "chorus", "bars": 8, "key": "C"},
+  {"name": "bridge", "bars": 4, "key": "F"},
+  {"name": "outro",  "bars": 4, "key": "Am"}
+]
+```
+
+### 2. 音频渲染 (`runtime/render_runtime.py`)
+
+FluidSynth + FFmpeg 流水线：MIDI → WAV（SoundFont 渲染）→ MP3 编码。跨平台 SoundFont 检测（Linux `/usr/share/sounds/sf2/`，Windows `C:\Windows\System32\drivers\gm.dls`）。
+
+### 3. 工作流与产物管理
+
+```text
+build/workflows/{workflow_id}/
+├── artifacts/
+│   ├── composition.mid        (MIDI 文件)
+│   ├── composition.musicxml   (可导入 DAW)
+│   ├── composition.ly         (LilyPond 源码)
+│   ├── composition.pdf        (出版级乐谱)
+│   ├── composition.wav        (无损音频)
+│   └── composition.mp3        (试听)
+├── manifest.json              (请求 + 产物清单)
+├── checkpoints.json           (各阶段记录)
+└── status.json                (异步状态)
+```
+
+生命周期：
+```
+queued → processing → completed
+                  → failed → retry → processing → completed
+                  → cancelled
+```
+
+### 4. MIDI 工具 (`services/midi_service.py`)
+
+| 工具 | 功能 |
+|------|------|
+| `diff` | 两组音符差分对比（added/removed） |
+| `diff-files` | 两个 `.mid` 文件差分 |
+| `inspect` | 分析 count / min / max / unique |
+| `query` | 按 min_pitch / max_pitch 过滤 |
+| `transform` | transpose / replace\_phrase / reverse / invert |
+
+### 5. 可演奏性检查 (`services/playability_service.py`)
+
+- 钢琴：音域 21-108、手跨 ≤24 半音、每手 ≤1 八度、≤10 同时音符
+- 人声：音域 55-84（C4~C6）
+- 吉他/贝斯：音域 + 位置移位警告
+- 小提琴/长笛/萨克斯/小号/大提琴：各自标准音域
+
+### 6. 参考搜索 (`integrations/meting.py`)
+
+三级回退：Meting-Agent 直接调用 → MCP stdio 协议 → iTunes HTTP API。结果归一化为 `title` / `artist` / `album` / `preview_url` / `song_id`。
+
+---
+
+## API 参考
+
+### 健康 & 能力
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/health` | 健康检查 |
+| GET | `/capabilities` | 工具/集成可用性 |
+
+### 作曲
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/v1/score` | 结构化参数 → MIDI/PDF/XML |
+| POST | `/v1/render` | MIDI → WAV/MP3 |
+| POST | `/v1/workflows/full` | 同步执行（完整流水线） |
+| POST | `/v1/workflows/full?async=true` | 异步执行（轮询状态） |
+| GET | `/v1/workflows/{id}/status` | 异步状态查询 |
+| POST | `/v1/workflows/{id}/revise` | 修订迭代 |
+| POST | `/v1/workflows/{id}/retry` | 重试 |
+| POST | `/v1/workflows/{id}/cancel` | 取消 |
+| DELETE | `/v1/workflows/{id}` | 删除 |
+| GET | `/v1/workflows` | 列表 |
+| POST | `/v1/workflows/cleanup` | 定时清理 |
+| GET | `/v1/workflows/{id}/checkpoints` | 检查点 |
+
+### MIDI
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/v1/midi/diff` | 音符列表对比 |
+| POST | `/v1/midi/diff-files` | .mid 文件对比 |
+| POST | `/v1/midi/inspect` | 音符分析 |
+| POST | `/v1/midi/query` | 过滤查询 |
+| POST | `/v1/midi/transform` | 移调/替换/反转/倒影 |
+
+### 校验 & 搜索
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/v1/playability` | 可演奏性检查 |
+| POST | `/v1/references/search` | 参考歌曲线索 |
+
+### 产物
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/v1/artifacts/{id}` | Manifest + file inventory |
+| GET | `/v1/artifacts/{id}/files/{name}` | 文件下载 |
+
+---
+
+## CLI 参考
+
+```bash
+# 作曲
 music-creation-engine score \
-  --lyrics "Verse text" \
-  --output build/output/song \
-  --key Am \
-  --bpm 72 \
-  --instruments piano,vocals,bass,drums \
-  --style pop \
+  --lyrics "歌词" --output /tmp/song \
+  --key Am --bpm 72 \
+  --instruments piano,vocals,bass \
   --chord-progression "Am,F,C,G" \
-  --sections '[{"name":"intro","bars":4},{"name":"verse","bars":8},{"name":"chorus","bars":8},{"name":"outro","bars":4}]' \
-  --melody '{"vocals":["A4","B4","C5","A4"]}' \
-  --instrument-roles '{"piano":"chord","bass":"bass","vocals":"melody","drums":"rhythm"}'
-```
+  --sections '[{"name":"intro","bars":4}]' \
+  --melody '{"vocals":["A4","B4","C5"]}' \
+  --instrument-roles '{"piano":"chord","bass":"bass"}'
 
-### 3. 生成完整成品
+# 工作流
+music-creation-engine workflow full --lyrics "..." --output /tmp/song
+music-creation-engine workflow status --workflow-id abc123
+music-creation-engine workflow revise --workflow-id abc123
+music-creation-engine workflow retry --workflow-id abc123
+music-creation-engine workflow list
 
-```bash
-music-creation-engine workflow full \
-  --lyrics "..." \
-  --output build/output/song \
-  --no-render-demo
-```
+# MIDI
+music-creation-engine midi diff --left-notes "60,62" --right-notes "60,64"
+music-creation-engine midi transform --notes "60,62,64" --operation reverse
 
-### 4. 查看和下载产物
-
-- `GET /v1/artifacts/{workflow_id}`
-- `GET /v1/artifacts/{workflow_id}/files/{filename}`
-- `GET /v1/workflows/{workflow_id}/checkpoints`
-
-### 5. 做 MIDI 级别验证
-
-```bash
-music-creation-engine midi inspect --midi-path build/output/song.mid
-music-creation-engine midi diff-files --left-path a.mid --right-path b.mid
-music-creation-engine midi transform --midi-path a.mid --operation transpose --semitones 2
-```
-
-### 6. 做可演奏性检查
-
-```bash
+# 校验
 music-creation-engine playability --instrument piano --notes "48,60,72,84"
 ```
 
-### 7. 做参考检索
+---
 
-```bash
-music-creation-engine references search --keyword "Jay Chou" --platform netease
+## 参数说明
+
+| 参数 | 类型 | 必填 | 默认 | 示例 |
+|------|------|------|------|------|
+| `lyrics` | `str` | ✅ | — | `"Verse text"` |
+| `output_base` | `str` | ✅ | — | `"/tmp/song"` |
+| `key` | `str` | 否 | `C` | `"Am"` |
+| `bpm` | `int` | 否 | `120` | `72` |
+| `instruments` | `str` | 否 | `"piano,vocals"` | `"piano,bass,drums"` |
+| `chord_progression` | `list[str]` | 否 | 模板 | `["Am","F","C","G"]` |
+| `sections` | `list[object]` | 否 | 歌词行数 | `[{name:"verse",bars:8}]` |
+| `melody` | `dict[str,list]` | 否 | 模板 | `{"vocals":["A4","B4","C5"]}` |
+| `instrument_roles` | `dict[str,str]` | 否 | 自动 | `{"piano":"chord","bass":"bass"}` |
+
+**有效值：** 乐器 `piano vocals guitar bass drums strings flute sax trumpet synth` | 角色 `chord melody bass pad rhythm` | BPM 20–300 | 段落 ≤50/总小节 ≤2000
+
+---
+
+## 配置
+
+`config/defaults.yaml`：
+
+```yaml
+project:
+  output_dir: build/output
+  workflow_dir: build/workflows
+integrations:
+  meting_enabled: true
+  midi_composer_enabled: false
+  reaper_enabled: false
+tools:
+  ffmpeg_command: ffmpeg
+  lilypond_command: lilypond
+  fluidsynth_command: fluidsynth
+  meting_command: npx
 ```
 
-## 生成的产物
+环境变量 `MCE_OUTPUT_DIR` / `MCE_WORKFLOW_DIR` 可覆盖。
 
-一次完整工作流可以产出：
+---
 
-- `composition.mid`
-- `composition.musicxml`
-- `composition.ly`
-- `composition.pdf`
-- `composition.wav`
-- `composition.mp3`
-- workflow manifest
-- workflow checkpoints
+## 项目结构
 
-## 安装步骤
-
-### 推荐方式：Docker
-
-```bash
-docker compose up
+```
+├── install.sh                  ← 安装入口
+├── Dockerfile / compose.yml    ← 容器部署
+├── pyproject.toml              ← 包元数据
+├── SKILL.md                    ← Agent skill 声明
+├── README.md / .en.md          ← 双语文档
+├── config/defaults.yaml        ← 配置
+├── src/music_creation_engine/
+│   ├── api/app.py              ← 20 路由
+│   ├── cli.py                  ← 22 命令
+│   ├── models.py               ← 数据模型
+│   ├── services/               ← 6 服务
+│   ├── runtime/                ← 执行引擎
+│   └── integrations/           ← 集成（meting/MCP/reaper）
+├── adapters/hermes/ codex/ openclaw/
+├── references/                 ← 设计文档 + 开发日志
+└── tests/                      ← 65+30 测试
 ```
 
-### 本地安装
+---
 
-```bash
-python3 -m pip install -e .
-```
+## Agent 适配器
 
-如果需要完整渲染链路，再安装系统依赖：
+| Agent | 文件 | 安装路径 |
+|-------|------|---------|
+| Hermes | `adapters/hermes/SKILL.md` | `~/.hermes/skills/creative/music-creation-engine/` |
+| Codex | `adapters/codex/AGENTS.md` | `$CODEX_HOME/skills/music-creation-engine/` |
+| OpenClaw | `adapters/openclaw/README.md` | `~/.openclaw/skills/music-creation-engine/` |
 
-```bash
-sudo apt-get install -y lilypond fluidsynth fluid-soundfont-gm ffmpeg
-```
+---
 
-### 安装脚本
+## 资源占用（预估）
 
-```bash
-./install.sh
-```
+| 组件 | 大小 |
+|------|------|
+| music21 | ~50 MB |
+| LilyPond | ~200 MB |
+| FluidSynth + FluidR3_GM.sf2 | ~146 MB |
+| FFmpeg | ~10 MB |
+| Meting-Agent (可选) | ~15 MB |
+| **运行时内存** | ~100 MB |
+| **每次生成产物** | ~1-5 MB |
 
-脚本会按顺序询问以下选项：
-
-- 是否安装 Python 可编辑包与 CLI 入口
-- 是否安装本地渲染工具 `lilypond` / `fluidsynth` / `ffmpeg`
-- 是否安装公共参考集成 `@eldment/meting-agent`
-- 是否把 bundle 复制到检测到的智能体技能目录
-- 如果没有技能目录，是否复制到 home 目录下的兜底位置
-
-默认行为是“是”。如果在非交互环境运行，脚本会按默认值继续。
-
-## 安装确认说明
-
-- `Python editable package and CLI entrypoint`：安装后可直接使用 `music-creation-engine` 命令。
-- `local rendering tools`：用于 PDF、WAV、MP3 等产物生成；没有这些工具也能做部分工作流，但渲染会降级。
-- `public reference integration`：用于参考检索层，优先走 public agent / MCP / CLI 兼容路径。
-- `copy bundle into detected agent skill directories`：把项目打包到 Hermes、Codex、OpenClaw 等常见技能路径，便于智能体直接调用。
-- `fallback directory`：当系统没有检测到任何技能目录时，使用用户主目录下的兜底副本。
-
-## 下一步方向
-
-1. 更强的 Meting 结果规范化和 provider 适配。
-2. 更强的异步队列和任务编排。
-3. 更深的原生 MIDI 编辑能力。
-4. 更细的 playability 规则。
-5. 按需接入 `midi-composer-mcp` 或 `reaper-mcp` 作为可选 sidecar。
+---
 
 ## 致谢
 
-本项目的思路、实现和集成方向借鉴并参考了以下项目与工具：
+- [music21](https://github.com/cuthbertLab/music21) — MIT 乐理引擎 | [LilyPond](https://lilypond.org) — 乐谱排版 | [FluidSynth](https://github.com/FluidSynth/fluidsynth) — MIDI 合成
+- [Meting-Agent](https://github.com/ELDment/Meting-Agent) — 音乐搜索 MCP | [midi-composer-mcp](https://github.com/voho/midi-composer-mcp) — 40+ 乐理 MCP 工具 | [reaper-mcp](https://github.com/bonfire-audio/reaper-mcp) — DAW 控制
 
-- `midi-composer-mcp`
-- `mcp-score`
-- `Midra`
-- `reaper-mcp`
-- `ATRI_AGENT`
-- `music.build`
-- `OpenClaw`
-- `Hermes`
+---
 
-同时也参考了多个公开的音乐智能体、工作流编排和发布自动化项目，用于完善本项目的工程边界与可执行性。
+## 变更日志
 
-## English
+详见 [CHANGELOG.md](CHANGELOG.md) | 详见 [references/release-notes-v0.4.0.md](references/release-notes-v0.4.0.md)
 
-If you need the English documentation, switch to [README.en.md](README.en.md).
+## 许可证
+
+待定
