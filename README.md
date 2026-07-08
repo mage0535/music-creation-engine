@@ -46,7 +46,7 @@
 ### Docker（推荐）
 
 ```bash
-git clone https://github.com/YOUR_REPO/music-creation-engine.git
+git clone https://github.com/mage0535/music-creation-engine.git
 cd music-creation-engine
 docker compose up
 # 服务启动在 http://localhost:8000
