@@ -22,7 +22,7 @@ jobs:
       - name: Install package and test tools
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e . pytest
+          python -m pip install -e . pytest httpx2
 
       - name: Run unit and integration tests
         run: python -m pytest -q tests --ignore=tests/live_service_test.py
