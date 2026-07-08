@@ -15,6 +15,8 @@ class ErrorCode(str, Enum):
     CONFIG_ERROR = "CONFIG_ERROR"
     FILE_NOT_FOUND = "FILE_NOT_FOUND"
     REVISION_FAILED = "REVISION_FAILED"
+    UNAUTHORIZED = "UNAUTHORIZED"
+    RATE_LIMITED = "RATE_LIMITED"
 
 
 
@@ -129,10 +131,18 @@ class ToolSettings:
 
 
 @dataclass
+class SecuritySettings:
+    api_keys: list[str] = field(default_factory=list)
+    rate_limit_per_minute: int = 0
+    auth_header_name: str = "x-api-key"
+
+
+@dataclass
 class Settings:
     project: ProjectSettings = field(default_factory=ProjectSettings)
     integrations: IntegrationSettings = field(default_factory=IntegrationSettings)
     tools: ToolSettings = field(default_factory=ToolSettings)
+    security: SecuritySettings = field(default_factory=SecuritySettings)
 
 
 @dataclass

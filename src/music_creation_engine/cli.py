@@ -214,12 +214,15 @@ def cmd_workflow_revise(args: argparse.Namespace) -> int:
         merged["melody"] = json.loads(args.melody)
     if args.instrument_roles:
         merged["instrument_roles"] = json.loads(args.instrument_roles)
+    if getattr(args, "render_demo", None) is not None:
+        merged["render_demo"] = args.render_demo
     workflow_service = WorkflowService(
         score_service=ScoreService(),
         render_service=RenderService(),
         artifact_service=artifact_service,
     )
-    result = workflow_service.run_full(
+    result = workflow_service.revise(
+        args.workflow_id,
         WorkflowRequest(
             lyrics=merged.get("lyrics", ""),
             output_base=merged.get("output_base", "build/output/song"),
@@ -232,9 +235,8 @@ def cmd_workflow_revise(args: argparse.Namespace) -> int:
             sections=merged.get("sections", []),
             melody=merged.get("melody", {}),
             instrument_roles=merged.get("instrument_roles", {}),
-        )
+        ),
     )
-    result["revision_of"] = args.workflow_id
     _print_json(result)
     return 0
 
@@ -399,6 +401,9 @@ def build_parser() -> argparse.ArgumentParser:
     workflow_revise.add_argument("--sections", default="")
     workflow_revise.add_argument("--melody", default="")
     workflow_revise.add_argument("--instrument-roles", default="")
+    workflow_revise.add_argument("--render-demo", dest="render_demo", action="store_true")
+    workflow_revise.add_argument("--no-render-demo", dest="render_demo", action="store_false")
+    workflow_revise.set_defaults(render_demo=None)
     workflow_list = workflow_subparsers.add_parser("list")
     workflow_delete = workflow_subparsers.add_parser("delete")
     workflow_delete.add_argument("--workflow-id", required=True)

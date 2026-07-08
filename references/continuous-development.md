@@ -2687,4 +2687,215 @@ Rewrote both READMEs following the **`mage0535/Knowledge-and-Memory-Management`*
 
 ### Closure
 
-The music-creation-engine completed its journey from v0.2.0 scaffold (Session 2) to v0.4.0 production-ready, publicly-documented AI Agent music composition execution engine across 22 sessions. Architecture boundary ("Agent decides, Engine executes") maintained throughout. Deployed on Hermes production server with 95 passing tests. Ready for public release.
+The music-creation-engine completed its journey from v0.2.0 scaffold (Session 2) to v0.4.0 production-ready, publicly-documented AI Agent music composition execution engine across 22 sessions. Architecture boundary ("Agent decides, Engine executes") maintained throughout. Deployed on Hermes production server with 95 passing tests.
+
+---
+
+## 2026-07-07 (Session 23 — GitHub Sync & Three-End Consistency Completion)
+
+### What was done
+
+- Synced 29 local files to `https://github.com/mage0535/music-creation-engine` via GitHub API (git push unavailable from this network)
+- Files updated: all source code, README.md, README.en.md, CHANGELOG.md, configuration, install script, Docker, agent adapters, reference docs
+- 29/29 uploaded, 0 failed
+
+### Three-End Consistency — Now Complete
+
+| End | Location | Status |
+|-----|----------|--------|
+| **API / Code** | `github.com/mage0535/music-creation-engine` | ✅ v0.4.0 source deployed |
+| **CLI / Package** | `github.com/mage0535/music-creation-engine` | ✅ 22 commands in pyproject.toml |
+| **Documentation** | `github.com/mage0535/music-creation-engine/README.md` | ✅ Chinese + English, KMM + GitHub combined format |
+| Local tests | 65 unit + 30 E2E | ✅ All passing |
+| Server deployment | Hermes production | ✅ Running on port 18126 |
+
+### GitHub Repository
+
+```
+https://github.com/mage0535/music-creation-engine
+```
+
+The repository now has the complete v0.4.0 codebase with:
+- Bilingual READMEs with KMM + GitHub fused format
+- Full API documentation (20 routes)
+- CLI reference (22 subcommands)
+- Structured parameter table
+- Configuration YAML
+- Resource usage estimates
+- Agent adapter documentation
+- Complete source code with all 22 sessions of work
+
+---
+
+## 2026-07-07 (Session 24 — Next Development Direction Proposal)
+
+> **Status:** Discussion proposal. Not yet implemented. For colleague review.
+
+### Current Project State (v0.4.0)
+
+Sessions 1-23 have delivered a stable, production-deployed music composition execution engine:
+
+| Dimension | Status |
+|-----------|--------|
+| API routes | 20 — all deployed and tested |
+| CLI commands | 22 — all documented |
+| Unit tests | 65 passed |
+| E2E HTTP tests | 30/30 passed |
+| Hermes server | Running on port 18126 |
+| GitHub sync | `github.com/mage0535/music-creation-engine` — 29 files synced |
+| Three-end consistency | API / CLI / README — confirmed aligned |
+
+### Short Term (v0.5.0 — Production Hardening)
+
+Estimated 6-10 hours total. Recommended as the next sprint.
+
+| # | Proposal | Why | Effort | Dependencies |
+|---|----------|-----|--------|-------------|
+| 1 | **API authentication + rate limiting** | Engine is currently open to any caller. Required for public-facing deployment. Simple API key check middleware on `/v1/*` routes + per-key rate limit. | 1-2h | None |
+| 2 | **GitHub Actions CI** | Run `pytest tests/` on every push and PR to `main`. Prevents silent regression across the 95-test suite. | 30min | Needs write access to repo |
+| 3 | **Smart revision (per-stage resume)** | `POST /v1/workflows/{id}/revise` currently regenerates everything. Smart version: if only BPM changed → re-render only, if only key changed → re-score then re-render, if no change → return cached. Makes iteration 2-10x faster. | 2-3h | None — checkpoints already store per-stage results |
+| 4 | **Real music21 integration test** | All 65 tests mock music21. One test that actually calls `converter.parse()` and validates MIDI file structure would catch music21 version-specific regressions (music21 10.3 vs 10.5 had API changes). | 1h | None — music21 already in core deps |
+| 5 | **Docker image auto-publish** | When a tag is pushed (e.g. `v0.5.0`), GitHub Actions builds and pushes to `ghcr.io/mage0535/music-creation-engine`. One-command deploy. | 1h | Item #2 (CI) first |
+
+**Priority recommendation:** #1 → #2 → #3 → #5 → #4 (ordered by user-facing impact)
+
+### Medium Term (Capability Expansion)
+
+| # | Proposal | Why | Effort |
+|---|----------|-----|--------|
+| 6 | **MCP sidecar deep integration** | `integrations/sidecar_midi_composer.py` currently has only a `probe()`. Full integration: map midi-composer-mcp's 40+ theory tools (counterpoint, voice leading, reharmonize) to Engine's `/v1/midi/*` endpoints. Agent calls Engine, Engine delegates to MCP. No Agent-side MCP config needed. | 3-4h |
+| 7 | **SSE streaming progress** | Replace `?async=true` + polling with `text/event-stream`. Each stage (`loading → scoring → rendering → exporting`) sends a Server-Sent Event with progress percentage and stage name. Agent gets real-time progress without polling. | 3-4h |
+| 8 | **Reference search depth** | Meting results already include `title/artist/album/preview_url`. Next: extract BPM, key, genre from search results. Inject into LLM prompt for style-aware composition. | 2h |
+
+### Long Term (Ecosystem)
+
+| # | Proposal | Why |
+|---|----------|-----|
+| 9 | **Suno / ACEStep API integration** | When lyrics are available, call external AI song generation API for vocals+accompaniment. Beyond MIDI-quality audio. |
+| 10 | **Pluggable render backend** | Replace hardcoded `fluidsynth`/`ffmpeg` with Protocol-based backend. Community can write VST, neural synth, or cloud API renderers. |
+| 11 | **Deep playability** | Piano two-hand independent analysis, chord fingering suggestions, guitar fretboard diagrams. Extract from ATRI_AGENT's `piano_playability_check`. |
+| 12 | **MIDI write/edit API** | `midi_write`, `midi_batch_edit` — granular MIDI file editing at the note/controller level. Extract from ATRI_AGENT's tool definitions. |
+
+### Proposed Next Sprint (for team discussion)
+
+**Recommended scope:** Items 1-4 (authentication + CI + smart revision + integration test). Estimated 5-7 hours.
+
+**Architectural impact:** None. All four are additive — they don't change existing API contracts, CLI behavior, or artifact structure. The smart revision (#3) is the only one that touches `WorkflowService`, and it's a backward-compatible optimization.
+
+**Risk:** Low. Items 1-4 each have clear success criteria and no external dependencies on other projects.
+
+### Alternative Sprint Scopes
+
+| Option | Scope | Hours | Risk | Value |
+|--------|-------|-------|------|-------|
+| A (Recommended) | Auth + CI + smart revision + integ test | 5-7h | Low | High |
+| B (Agent-focused) | MCP sidecar + SSE streaming | 6-8h | Medium | Medium |
+| C (Safety-first) | Auth + CI + Docker publish | 3-4h | Very low | Medium |
+| D (Feature) | Smart revision + MIDI write/edit | 4-5h | Low | Medium |
+
+---
+
+## 2026-07-08 (Session 25 — Source-Of-Truth Cleanup And v0.5.0 Hardening)
+
+### What was implemented
+
+#### 1. Source-of-truth documentation cleanup
+
+- Rewrote `README.md` to remove the mojibake / encoding-corrupted Chinese content and replace it with a concise, readable public entry page.
+- Rewrote `README.en.md` to match the simplified public structure.
+- Added `references/project-status.md` as the short authoritative project summary so teammates no longer need to extract the current truth from the full long-form development log.
+
+#### 2. API hardening
+
+- Added API key authentication for `/v1/*`.
+- Added in-memory rate limiting for `/v1/*`.
+- Security config is now driven by:
+  - `MCE_API_KEYS`
+  - `MCE_RATE_LIMIT_PER_MINUTE`
+  - `MCE_AUTH_HEADER_NAME`
+- If no API keys are configured, local development remains open by default.
+
+#### 3. Smart revision
+
+- `POST /v1/workflows/{id}/revise` no longer blindly regenerates every stage.
+- When score-affecting inputs have not changed, revision now:
+  - reuses score artifacts
+  - reuses render artifacts when still valid
+  - renders only the missing render stage when `render_demo` changes from false to true
+- Reused-stage results are now reported through `reused_stages`.
+
+#### 4. Real integration test and CI
+
+- Added one real score-runtime integration test that generates actual MIDI and parses it back through `music21`.
+- Added `.github/workflows/ci.yml` to run:
+  - `pytest tests --ignore=tests/live_service_test.py`
+  - `python tests/e2e_http_workflow.py`
+
+### Verification
+
+- Local tests: `70 passed`
+- E2E HTTP workflow: passed
+
+### Why this matters
+
+This session moved the project from "publicly documented and functionally complete" to "publicly documented, hardened, and guarded against basic deployment mistakes":
+
+- docs now have a short truth source
+- `/v1/*` can now be protected
+- revisions are cheaper and more operationally realistic
+- CI prevents quiet regressions
+
+### Important implementation note
+
+The original sprint suggestion said "BPM-only changes can re-render only." That was corrected during implementation:
+
+- BPM affects MIDI timing and therefore is score-affecting, not render-only
+- the final smart-revision rule is:
+  - only `render_demo` or no-change => score reuse
+  - any score-affecting change => re-score, then render as needed
+
+This preserves correctness instead of optimizing around an invalid assumption.
+
+### Hermes live verification for Session 25
+
+Two real server-side verification passes were executed against a temporary uvicorn instance on Hermes:
+
+#### A. Auth and rate limit verification
+
+Environment:
+
+- `MCE_API_KEYS=demo-key`
+- `MCE_RATE_LIMIT_PER_MINUTE=2`
+
+Observed:
+
+- no API key -> `401`
+- valid API key -> `200`
+- third rapid authenticated request -> `429`
+
+#### B. Full user workflow verification
+
+Environment:
+
+- `MCE_API_KEYS=demo-key`
+- `MCE_RATE_LIMIT_PER_MINUTE=50`
+
+Observed:
+
+- reference search succeeded
+- full workflow succeeded
+- workflow produced:
+  - `composition.mid`
+  - `composition.musicxml`
+  - `composition.ly`
+  - `composition.pdf`
+  - `composition.wav`
+  - `composition.mp3`
+- manifest retrieval succeeded
+- checkpoint retrieval succeeded
+- MIDI and MP3 download succeeded
+- empty-body revision succeeded and returned:
+  - `revision_of`
+  - `reused_stages: ["score", "render"]`
+
+This confirms the v0.5.0 hardening items are not only coded locally but operational on Hermes.

@@ -312,3 +312,63 @@ def test_midi_inspect_from_file_returns_note_data():
 
     assert inspected.status_code == 200
     assert inspected.json()["count"] > 0
+
+
+def test_v1_routes_require_api_key_when_configured(monkeypatch):
+    monkeypatch.setenv("MCE_API_KEYS", "secret-key")
+    client = TestClient(create_app())
+
+    denied = client.post(
+        "/v1/score",
+        json={"lyrics": "hello world", "output_base": "build/output/song"},
+    )
+    allowed = client.post(
+        "/v1/score",
+        headers={"x-api-key": "secret-key"},
+        json={"lyrics": "hello world", "output_base": "build/output/song"},
+    )
+
+    assert denied.status_code == 401
+    assert denied.json()["error"]["code"] == "UNAUTHORIZED"
+    assert allowed.status_code == 200
+
+
+def test_v1_routes_rate_limit_when_enabled(monkeypatch):
+    monkeypatch.setenv("MCE_API_KEYS", "secret-key")
+    monkeypatch.setenv("MCE_RATE_LIMIT_PER_MINUTE", "2")
+    client = TestClient(create_app())
+    headers = {"x-api-key": "secret-key"}
+
+    first = client.post("/v1/references/search", headers=headers, json={"keyword": "test"})
+    second = client.post("/v1/references/search", headers=headers, json={"keyword": "test"})
+    third = client.post("/v1/references/search", headers=headers, json={"keyword": "test"})
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert third.status_code == 429
+    assert third.json()["error"]["code"] == "RATE_LIMITED"
+    assert "Retry-After" in third.headers
+
+
+def test_workflow_revise_reuses_score_when_only_render_flag_changes(monkeypatch):
+    monkeypatch.setattr(
+        "music_creation_engine.services.render_service.render_demo_artifacts",
+        lambda request: {"mp3": f"{request.output_base}.mp3"},
+    )
+    client = TestClient(create_app())
+
+    workflow = client.post(
+        "/v1/workflows/full",
+        json={"lyrics": "hello world", "output_base": "build/output/song", "render_demo": False},
+    ).json()
+
+    revised = client.post(
+        f"/v1/workflows/{workflow['workflow_id']}/revise",
+        json={"render_demo": True},
+    )
+
+    assert revised.status_code == 200
+    payload = revised.json()
+    assert payload["revision_of"] == workflow["workflow_id"]
+    assert "score" in payload.get("reused_stages", [])
+    assert payload["render"] is not None

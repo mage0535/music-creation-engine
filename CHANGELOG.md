@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format follows the spirit of Keep a Changelog and uses semantic project releases.
 
+## [Unreleased]
+
+### Added
+
+- Short source-of-truth project summary at `references/project-status.md`.
+- API key auth and in-memory rate limiting for `/v1/*`.
+- GitHub Actions CI workflow for pushes and pull requests.
+- Real score-runtime integration test using actual `music21` output.
+
+### Changed
+
+- Rewrote both public READMEs into clean, non-corrupted source files.
+- `workflow revise` now reuses score and render stages when the request does not change score-affecting inputs.
+
+### Fixed
+
+- Removed the corrupted Chinese README source content.
+- Corrected the revision strategy so BPM changes are treated as score-affecting, not render-only.
+
 ## [0.4.0] - 2026-07-07
 
 ### Added

@@ -26,6 +26,7 @@ from music_creation_engine.models import (
     WorkflowRequest,
     WorkflowRevisionRequest,
 )
+from music_creation_engine.security import RequestGate
 from music_creation_engine.services.artifact_service import ArtifactService
 from music_creation_engine.services.midi_service import MidiService
 from music_creation_engine.services.playability_service import PlayabilityService
@@ -189,6 +190,7 @@ def _run_workflow_async(workflow_id: str, service: WorkflowService, artifact_ser
 def create_app() -> FastAPI:
     app = FastAPI(title="Music Creation Engine")
     settings = load_settings(resolve_paths=True)
+    request_gate = RequestGate(settings.security)
     score_service = ScoreService()
     render_service = RenderService()
     artifact_service = ArtifactService(settings.project.workflow_dir)
@@ -199,6 +201,16 @@ def create_app() -> FastAPI:
     )
     midi_service = MidiService()
     playability_service = PlayabilityService()
+
+    @app.middleware("http")
+    async def security_middleware(request: Request, call_next):
+        decision = request_gate.validate(request)
+        if not decision.allowed:
+            headers = {}
+            if decision.retry_after_seconds is not None:
+                headers["Retry-After"] = str(decision.retry_after_seconds)
+            return JSONResponse(status_code=decision.status_code, content=decision.payload or {}, headers=headers)
+        return await call_next(request)
 
     @app.exception_handler(EngineError)
     async def engine_error_handler(_request: Request, exc: EngineError) -> JSONResponse:
@@ -340,9 +352,7 @@ def create_app() -> FastAPI:
             melody=merged.get("melody", {}),
             instrument_roles=merged.get("instrument_roles", {}),
         )
-        result = workflow_service.run_full(revised)
-        result["revision_of"] = workflow_id
-        return result
+        return workflow_service.revise(workflow_id, revised)
 
     @app.post("/v1/render")
     def render(body: RenderBody) -> dict[str, object]:

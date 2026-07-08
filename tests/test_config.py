@@ -103,3 +103,25 @@ integrations:
     assert settings.project.workflow_dir == "build/workflows"
     assert settings.integrations.midi_composer_enabled is True
     assert settings.integrations.midi_composer_command == "midi-composer-mcp"
+
+
+def test_load_settings_reads_security_env_overrides(monkeypatch, tmp_path):
+    defaults = tmp_path / "defaults.yaml"
+    defaults.write_text(
+        """
+security:
+  api_keys: []
+  rate_limit_per_minute: 0
+  auth_header_name: x-api-key
+""".strip(),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("MCE_API_KEYS", "alpha,beta")
+    monkeypatch.setenv("MCE_RATE_LIMIT_PER_MINUTE", "12")
+    monkeypatch.setenv("MCE_AUTH_HEADER_NAME", "X-Test-Key")
+
+    settings = load_settings(defaults_path=defaults)
+
+    assert settings.security.api_keys == ["alpha", "beta"]
+    assert settings.security.rate_limit_per_minute == 12
+    assert settings.security.auth_header_name == "x-test-key"

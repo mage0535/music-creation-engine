@@ -19,3 +19,8 @@ tools:
   meting_command: npx
   midi_composer_command: midi-composer-mcp
   reaper_command: reaper-mcp
+
+security:
+  api_keys: []
+  rate_limit_per_minute: 0
+  auth_header_name: x-api-key

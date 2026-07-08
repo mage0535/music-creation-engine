@@ -21,6 +21,10 @@ It is no longer just a skill bundle.
 - GitHub Release workflow
 - formal changelog and release-notes documentation
 - Meting-first normalized reference search with richer metadata extraction
+- API key auth and in-memory rate limiting on `/v1/*`
+- smart revision with score/render reuse when safe
+- real runtime integration test in the local test suite
+- CI workflow for push and pull request validation
 
 ## Weak Areas
 
@@ -31,7 +35,7 @@ It is no longer just a skill bundle.
 
 ## Current Priority
 
-1. deployment consistency and public release hygiene
-2. workflow lifecycle hardening
+1. keep docs, runtime behavior, and deployment state aligned
+2. verify the new auth/rate-limit/revision path on Hermes as the default hardened workflow
 3. provider-specific Meting enrichment beyond the normalized common schema
 4. only then deeper external musical capability integration

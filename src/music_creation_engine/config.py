@@ -9,6 +9,7 @@ import yaml
 from music_creation_engine.models import (
     IntegrationSettings,
     ProjectSettings,
+    SecuritySettings,
     Settings,
     ToolSettings,
 )
@@ -48,6 +49,7 @@ def load_settings(
     project = ProjectSettings(**data.get("project", {}))
     integrations = IntegrationSettings(**data.get("integrations", {}))
     tools = ToolSettings(**data.get("tools", {}))
+    security = SecuritySettings(**data.get("security", {}))
 
     output_dir_override = os.getenv("MCE_OUTPUT_DIR")
     if output_dir_override:
@@ -55,6 +57,15 @@ def load_settings(
     workflow_dir_override = os.getenv("MCE_WORKFLOW_DIR")
     if workflow_dir_override:
         project.workflow_dir = workflow_dir_override
+    api_keys_override = os.getenv("MCE_API_KEYS")
+    if api_keys_override is not None:
+        security.api_keys = [item.strip() for item in api_keys_override.split(",") if item.strip()]
+    rate_limit_override = os.getenv("MCE_RATE_LIMIT_PER_MINUTE")
+    if rate_limit_override:
+        security.rate_limit_per_minute = int(rate_limit_override)
+    auth_header_override = os.getenv("MCE_AUTH_HEADER_NAME")
+    if auth_header_override:
+        security.auth_header_name = auth_header_override.strip().lower()
 
     if resolve_paths:
         if not Path(project.output_dir).is_absolute():
@@ -62,4 +73,4 @@ def load_settings(
         if not Path(project.workflow_dir).is_absolute():
             project.workflow_dir = str(repo_root / project.workflow_dir)
 
-    return Settings(project=project, integrations=integrations, tools=tools)
+    return Settings(project=project, integrations=integrations, tools=tools, security=security)
